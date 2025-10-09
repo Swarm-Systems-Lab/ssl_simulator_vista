@@ -1,0 +1,17 @@
+{
+  "shape": [1, 2],
+  "plotters": [
+    {
+      "type": "Plotter3DCanvas",
+      "position": [0, 0],
+      "args": {
+        "robot_type": "unicycle",
+        "color": "blue"
+      }
+    },
+    {
+      "type": "Plotter3DAttitude",
+      "position": [0, 1]
+    }
+  ]
+}
