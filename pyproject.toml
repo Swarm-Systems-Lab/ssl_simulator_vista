@@ -30,3 +30,6 @@ sslvista = "ssl_vista.cli:app"
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["output"]
+
+[tool.setuptools.package-data]
+"ssl_vista" = ["data/grid_layouts/*.json", "data/assets/**/*"]

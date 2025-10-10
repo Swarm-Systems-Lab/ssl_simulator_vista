@@ -1,18 +1,13 @@
 import typer
 from pathlib import Path
 
+from ssl_vista.data import get_grid_layout_path, list_available_layouts
 from .app import run_app
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
 
-# Path to the folder containing default layouts
-GRID_LAYOUTS_DIR = Path(__file__).parent / "grid_layouts"
-
-def list_layouts():
-    """Return a sorted list of available layout names (without .json extension)."""
-    if not GRID_LAYOUTS_DIR.exists():
-        return []
-    return sorted(p.stem for p in GRID_LAYOUTS_DIR.glob("*.json"))
+# # Path to the folder containing default layouts
+# GRID_LAYOUTS_DIR = Path(__file__).parent / "grid_layouts"
 
 @app.command()
 def run(
@@ -53,7 +48,7 @@ def run(
 
     # --- Handle listing layouts ---
     if list_layouts_flag:
-        layouts = list_layouts()
+        layouts = list_available_layouts()
         if not layouts:
             typer.echo("No layouts found in grid_layouts folder.")
         else:
@@ -64,15 +59,8 @@ def run(
         
     # --- Handle layout argument ---
     layout_file = None
-    candidate_path = GRID_LAYOUTS_DIR / f"{l}.json"
-
-    if candidate_path.exists():
-        layout_file = candidate_path
-    else:
-        # Treat as relative path from current working directory
-        layout_file = Path(l)
-        if not layout_file.exists():
-            raise typer.BadParameter(f"Layout '{l}' not found in grid_layouts or as a relative file path.")
+    if l is not None:
+        layout_file = get_grid_layout_path(l)
 
     # --- Handle data argument ---
     # if data is None:
