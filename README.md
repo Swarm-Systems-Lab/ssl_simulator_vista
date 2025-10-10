@@ -33,6 +33,7 @@ sslvista
 - `-l` / `--layout` : Name of a layout in `grid_layouts` or a relative path to a `.json` layout file.
 - `-data` / `--data-path` : Relative path to the CSV data file.
 - `--list-layouts` : Show all available layouts in `grid_layouts` and exit.
+- `-ap` / `--auto-play` : Automatically start the simulation once the data file is loaded.
 - `-h` / `--help` : Show the help message.
 
 ### Example:
@@ -42,7 +43,7 @@ sslvista
 sslvista -ll
 
 # Use a default 3D layout (providing -data is optional)
-sslvista -l 3d_canvas -data ./data/my_simulation.csv
+sslvista -l 3d_canvas -data ./data/my_simulation.csv -ap
 
 # Use a custom layout file
 sslvista -l ./layouts/custom_layout.json -data ./data/my_simulation.csv

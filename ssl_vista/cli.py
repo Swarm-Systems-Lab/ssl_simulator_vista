@@ -33,6 +33,12 @@ def run(
         "-data",
         "--data-path",
         help="Path to CSV data file"
+    ),
+    auto_play: bool = typer.Option(
+        False,
+        "-ap",
+        "--auto-play", 
+        help="Automatically start the simulation upon loading (data file required)"
     )
 ):
     """
@@ -77,9 +83,9 @@ def run(
             raise typer.BadParameter(f"Data file '{data}' not found.")
     else:
         data_file = None
-
+    
     # --- Call the main app ---
-    run_app(layout=layout_file, data_path=data_file)
+    run_app(layout=layout_file, data_path=data_file, auto_play=auto_play)
 
 
 if __name__ == "__main__":

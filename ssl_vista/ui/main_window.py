@@ -15,10 +15,11 @@ os.environ['QT_QPA_PLATFORM'] = "xcb"
 class MainWindow(QMainWindow):
     """Base simulation application with a toolbar and customizable grid layout."""
     def __init__(self, title="Simulation Viewer", 
-                 layout=None, data_path=None,
+                 layout=None, data_path=None, auto_play=False,
                  width_ratio=0.8, height_ratio=0.8, animation_period=40):
         super().__init__()
         self.setWindowTitle(title)
+        self.auto_play = auto_play
         self.animation_period = animation_period # in ms
 
         # --- Set initial window size and position ---
@@ -171,6 +172,8 @@ class MainWindow(QMainWindow):
             self.time_slider.blockSignals(False)
             self.grid.reset_scenes(self.sim_data, self.sim_settings)
             self.reset_simulation()
+            if self.auto_play:
+                self.play_simulation()
 
     # ---------------------------------------------------------------
     # SIMULATION CONTROL METHODS
