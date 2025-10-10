@@ -1,28 +1,38 @@
+__all__ = ["MainWindow"]
+
 import os
 import sys
 import numpy as np
-import pyvista as pv
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtCore import Qt, QTimer
 
-from toolbars import SimulationToolbar
-from grid import SimulationGrid
-from grid_loader import load_grid_from_json
-from plotters.plotter_2d_canvas import Plotter2DCanvas
-
+from ssl_vista import SimulationToolbar, load_grid_from_json
 from ssl_simulator import load_sim
 
 # For Wayland compatibility (e.g. Ubuntu)
 os.environ['QT_QPA_PLATFORM'] = "xcb"
 
-class SimulationApp(QMainWindow):
+class MainWindow(QMainWindow):
     """Base simulation application with a toolbar and customizable grid layout."""
     def __init__(self, title="Simulation Viewer", 
-                 width=1000, height=800, animation_period=40):
+                 layout=None, data_path=None,
+                 width_ratio=0.8, height_ratio=0.8, animation_period=40):
         super().__init__()
         self.setWindowTitle(title)
-        self.setGeometry(100, 100, width, height)  # TODO: by default adjust to system resolution
-        self.animation_period = animation_period  # in milliseconds
+        self.animation_period = animation_period # in ms
+
+        # --- Set initial window size and position ---
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()  # Excludes taskbar/dock
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
+
+        width = int(screen_width * width_ratio)
+        height = int(screen_height * height_ratio)
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+
+        self.setGeometry(x, y, width, height)
 
         # --- Toolbar ---
         self.simulation_toolbar = SimulationToolbar(self)
@@ -66,6 +76,12 @@ class SimulationApp(QMainWindow):
         # --- Key Press Event handler ---
         self.keyPressEvent = self.handle_key_press
         # TODO: fix focus issues with grid stealing keys
+
+        # --- Load initial layout and data if provided ---
+        if layout is not None:
+            self.load_grid_layout(layout)
+        if data_path is not None:
+            self.load_csv(data_path)
         
     def handle_key_press(self, event):
         """Handle key press events."""
@@ -74,7 +90,6 @@ class SimulationApp(QMainWindow):
         if self.key_press_allowed:
             if key == Qt.Key_Space:  # Toggle play/pause
                 if self.sim_data is not None:
-                    print(self.playing)
                     self.play_simulation() if not self.playing else self.stop_simulation()
 
             elif key == Qt.Key_R: # Reset simulation
@@ -105,7 +120,6 @@ class SimulationApp(QMainWindow):
         return self.time_slider.maximum() - self.time_slider.minimum()
     
     def slider_pressed(self):
-        print("Slider pressed, stopping simulation.")
         self.stop_simulation()
 
     # ----------------------------------------------------------------------
@@ -124,7 +138,7 @@ class SimulationApp(QMainWindow):
         self.clear_current_grid()
 
         # Read layout info and set as central widget
-        self.grid = load_grid_from_json(file_path)
+        self.grid = load_grid_from_json(file_path) # SimulationGrid
         self.setCentralWidget(self.grid)
 
         # Setup new scenes and timer
@@ -209,15 +223,7 @@ class SimulationApp(QMainWindow):
         
     def closeEvent(self, event):
         """Handle the close event to stop all timers and clean up."""
-        self.grid.timer_stop()
+        if self.grid is not None:
+            self.grid.timer_stop()
         self.key_press_timer.stop()
         event.accept()
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-
-    # Create and show the simulation app
-    window = SimulationApp()
-    window.show()
-
-    sys.exit(app.exec_())

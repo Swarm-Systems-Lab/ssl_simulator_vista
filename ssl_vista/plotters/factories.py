@@ -1,27 +1,4 @@
-# import numpy as np
-# import pyvista as pv
-
-# class RobotFactory:
-#     def create(self, robot_type, *args, **kwargs):
-#         if robot_type == "single_integrator" or robot_type == "default":
-#             theta = np.linspace(0, 2*np.pi, 50)
-#             verts = np.c_[np.cos(theta)*0.25, np.sin(theta)*0.25]
-#             faces = [len(verts)] + list(range(len(verts)))
-#         elif robot_type == "unicycle":
-#             verts = np.array([[0.5, 0], [0, 0.25], [0, -0.25]])
-#             faces = [3, 0, 2, 1]
-#         elif robot_type == "fixed_wing":
-#             verts = np.array([[0.5, 0], [-0.5, 0.25], [-0.5, -0.25], [0, 0]])
-#             faces = [4, 0, 1, 3, 2]
-#         else:
-#             raise ValueError(f"Unknown robot type: {robot_type}")
-
-#         mesh = pv.PolyData()
-#         mesh.points = np.hstack([verts, np.zeros((verts.shape[0], 1))])
-#         mesh.faces = np.hstack([faces])
-#         mesh.field_data["orig_points"] = np.array(mesh.points.copy())
-#         mesh.field_data["orig_centroid"] = np.array(mesh.points.mean(axis=0))
-#         return mesh
+__all__ = ["RobotFactory"]
 
 import numpy as np
 import pyvista as pv

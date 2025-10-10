@@ -1,10 +1,13 @@
+__all__ = ["Plotter3DCanvas"]
+
 import numpy as np
 import pyvista as pv
 
 from ._base_py_plotter import BaseVisualPlotter
-from factories import RobotFactory
+from .factories import RobotFactory
 
 pv.global_theme.allow_empty_mesh = True
+
 
 def transform_points_3d(points, centroid, translation, R=None):
     """
@@ -96,7 +99,6 @@ class Plotter3DCanvas(BaseVisualPlotter):
             color = self.default_color
         robots = [{"name": f"{base_name}{i}", "type": robot_type, "color": color} for i in range(count)]
         self.add_robots(robots)
-        self.update_scene_bounds()
         self.reset_camera()
 
     def add_robots(self, robots):

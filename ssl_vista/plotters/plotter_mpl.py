@@ -1,8 +1,11 @@
-import matplotlib.pyplot as plt
+__all__ = ["PlotterMatplotlib"]
+
 import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from ssl_simulator.visualization import PlotBase
+
 
 class PlotterMatplotlib(PlotBase):
     """

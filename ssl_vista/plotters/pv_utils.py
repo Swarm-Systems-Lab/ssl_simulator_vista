@@ -1,3 +1,7 @@
+__all__ = [
+    "inspect_actor",
+]
+
 import pyvista as pv
 
 def inspect_actor(actor):

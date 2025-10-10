@@ -5,9 +5,10 @@ import numpy as np
 import pyvista as pv
 
 from ._base_py_plotter import BaseVisualPlotter
-from factories import RobotFactory
+from .factories import RobotFactory
 
 pv.global_theme.allow_empty_mesh = True
+
 
 def transform_points(points, centroid, translation, orientation=None):
     pts = points.copy()

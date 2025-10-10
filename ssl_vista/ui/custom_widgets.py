@@ -2,8 +2,7 @@ __all__ = [
     "CustomSlider",
     ]
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QSlider, QVBoxLayout, QWidget, QToolBar, QAction, QHBoxLayout, QLabel
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QSlider
 
 class CustomSlider(QSlider):
     """Custom slider to shadow key events."""

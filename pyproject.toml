@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ssl_vista"
+version = "0.1.0"
+description = "A Qt-based visualization app"
+readme = "README.md"
+requires-python = ">=3.8, <3.12"
+license = "GPL-3.0-or-later"
+authors = [
+    { name="Jesús Bautista Villar", email="jesbauti20@gmail.com" }
+]
+
+dependencies = [
+    "ssl-simulator @ git+https://github.com/Swarm-Systems-Lab/ssl_simulator.git@lie_tools",
+    "pyvista>=0.46.3",
+    "vtk>=9.3,<9.5",
+    "pyvistaqt>=0.11.3",
+    "ipyvtklink>=0.2.2,<0.3",
+    "ipywidgets>=8.0,<9.0",
+    "PyQt5>=5.15.0"
+]
+
+[project.scripts]
+sslvista = "ssl_vista.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["output"]

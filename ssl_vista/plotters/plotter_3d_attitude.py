@@ -7,6 +7,7 @@ from PyQt5 import QtCore, QtGui
 from ._base_py_plotter import BaseVisualPlotter
 from .meshes import create_sphere_grid, create_geodesic, make_dashed_line
 
+
 class Plotter3DAttitude(BaseVisualPlotter):
     """3D Attitude visualizer for a single robot's orientation matrix."""
 

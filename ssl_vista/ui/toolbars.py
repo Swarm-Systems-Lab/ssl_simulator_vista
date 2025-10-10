@@ -1,11 +1,9 @@
-__all__ = [
-    "SimulationToolbar",
-    ]
+__all__ = ["SimulationToolbar"]
 
 from PyQt5.QtWidgets import QToolBar, QAction, QLabel, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from custom_widgets import CustomSlider
+from ssl_vista import CustomSlider
 
 class SimulationToolbar(QToolBar):
     """Toolbar for simulation controls."""

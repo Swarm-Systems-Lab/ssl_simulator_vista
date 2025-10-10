@@ -1,3 +1,5 @@
+__all__ = ["BaseVisualPlotter"]
+
 import numpy as np
 from pyvistaqt import QtInteractor
 from PyQt5 import  QtCore, QtGui
