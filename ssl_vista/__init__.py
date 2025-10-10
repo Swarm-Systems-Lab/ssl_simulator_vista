@@ -1,6 +1,7 @@
 """
 SSL Simulator Vista - A PyVista/Matplotlib-based Visualization Tool for the SSL Simulator
 """
+from .config import CONFIG
 
 from .plotters._base_py_plotter import *
 from .plotters.factories import *

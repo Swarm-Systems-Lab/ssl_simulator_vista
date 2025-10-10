@@ -13,7 +13,7 @@ from ssl_vista import BaseVisualPlotter
 from ssl_vista.plotters import *
 from ssl_simulator.visualization import PlotBase
 
-DEBUG = False
+from ssl_vista import CONFIG
 
 class SimulationGrid(QWidget):
     """A customizable grid layout for plotters."""
@@ -38,7 +38,7 @@ class SimulationGrid(QWidget):
                     if self._plotter_array[i, j] is None:
                         self._plotter_array[i, j] = plotter
                         self.layout.addWidget(plotter.get_widget(), i, j)
-                        if DEBUG:
+                        if CONFIG["DEBUG"]:
                             print(f"[DEBUG] Added plotter at position ({i}, {j})")
                         return
             raise ValueError("No free position available in the grid.")
@@ -132,8 +132,8 @@ def load_grid_from_json(file_path: str, parent=None) -> SimulationGrid:
         # Add to grid
         grid.add_plotter(plotter, position=position)
 
-    if DEBUG:
-        print(f"Loaded grid from {file_path} with shape={shape} and {len(plotters)} plotters.")
+    if CONFIG["DEBUG"]:
+        print(f"[DEBUG] Loaded grid from {file_path} with shape={shape} and {len(plotters)} plotters.")
 
     return grid
 

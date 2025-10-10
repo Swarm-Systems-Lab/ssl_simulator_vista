@@ -6,7 +6,7 @@ import numpy as np
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtCore import Qt, QTimer
 
-from ssl_vista import SimulationToolbar, load_grid_from_json
+from ssl_vista import SimulationToolbar, load_grid_from_json, CONFIG
 from ssl_simulator import load_sim
 
 # For Wayland compatibility (e.g. Ubuntu)
@@ -166,7 +166,7 @@ class MainWindow(QMainWindow):
     def process_csv(self):
         """Process the loaded CSV data."""
         if self.sim_file_path is not None:
-            self.sim_data, self.sim_settings = load_sim(self.sim_file_path, debug=True)
+            self.sim_data, self.sim_settings = load_sim(self.sim_file_path, debug=CONFIG["DEBUG_INFO"])
             self.sim_time = self.sim_data['time']
             self.time_slider.setRange(0, len(self.sim_time) - 1)
             self.time_slider.blockSignals(False)
@@ -220,7 +220,7 @@ class MainWindow(QMainWindow):
                 self.stop_simulation()
                 self.updated = True
             else:       
-                print("Time index out of bounds.")
+                print("[ERROR] Time index out of bounds.")
         else:
             self.stop_simulation()
         

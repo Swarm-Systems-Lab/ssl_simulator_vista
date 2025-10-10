@@ -4,6 +4,7 @@ import numpy as np
 from pyvistaqt import QtInteractor
 from PyQt5 import  QtCore, QtGui
 
+from ssl_vista import CONFIG
 from .pv_utils import inspect_actor
 
 class BaseVisualPlotter(QtInteractor):
@@ -176,14 +177,15 @@ class BaseVisualPlotter(QtInteractor):
     # ---------------------------------------------------------------
     def print_scene_objects(self, verbose=False):
         """Print all scene objects."""
-        if not self.scene_objects:
-            print("No scene objects available.")
-            return
+        if CONFIG["DEBUG"]:
+            if not self.scene_objects:
+                print("No scene objects available.")
+                return
 
-        print("Scene Objects:")
-        for name, obj in self.scene_objects.items():
-            mesh = obj["mesh"]
-            actor = obj["actor"]
-            print(f" - {name}: mesh={type(mesh).__name__}, actor={type(actor).__name__}")
-            if verbose:
-                inspect_actor(actor)
+            print("Scene Objects:")
+            for name, obj in self.scene_objects.items():
+                mesh = obj["mesh"]
+                actor = obj["actor"]
+                print(f" - {name}: mesh={type(mesh).__name__}, actor={type(actor).__name__}")
+                if verbose:
+                    inspect_actor(actor)

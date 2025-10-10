@@ -19,6 +19,12 @@ pip install -e .
 
 Installing with `-e` (editable) ensures that any changes to the source code are reflected immediately without reinstalling.
 
+If you want to use this package in a project, you can add the following line to your `requirements.txt` file:
+
+```
+git+https://github.com/Swarm-Systems-Lab/ssl_simulator_vista.git
+```
+
 > ⚠️ All dependencies, including the simulator and PyVista, are specified in `pyproject.toml` to ensure compatibility. Do **not modify dependency versions** to guarantee stable and reproducible environments.
 
 ## Usage

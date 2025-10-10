@@ -4,6 +4,8 @@ import sys
 import numpy as np
 import pyvista as pv
 
+from ssl_vista.config import CONFIG
+
 from ._base_py_plotter import BaseVisualPlotter
 from .factories import RobotFactory
 
@@ -81,7 +83,6 @@ class Plotter2DCanvas(BaseVisualPlotter):
         """
         Reset the scene by removing all robots and adding new ones based on the simulation data.
         """
-        print("Resetting scene...")
         # Remove all robots from the scene
         robot_names = [name for name in self.scene_objects.keys() if ".traj" not in name]
         for name in robot_names:
