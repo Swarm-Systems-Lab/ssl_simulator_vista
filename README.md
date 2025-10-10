@@ -2,24 +2,51 @@
 
 ## Installation
 
-We recommend creating a dedicated virtual environment to ensure that the project dependencies do not conflict with other Python packages:
+We recommend creating a dedicated virtual environment to avoid conflicts with other Python packages:
+
 ```bash
 python -m venv venv
-source venv/bin/activate
-```
-Then, install the required dependencies:
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
+source venv/bin/activate   # Linux/macOS
+# venv\Scripts\activate    # Windows
 ```
 
-> ```requirements.txt``` contains the versions tested for **compatibility with the simulator**.
-Do **not modify the versions** to ensure stable and reproducible environments.
+Then, install the package in editable mode to allow development changes:
+
+```bash
+pip install --upgrade pip
+pip install -e .
+```
+
+Installing with `-e` (editable) ensures that any changes to the source code are reflected immediately without reinstalling.
+
+> ⚠️ All dependencies, including the simulator and PyVista, are specified in `pyproject.toml` to ensure compatibility.  
+Do **not modify dependency versions** to guarantee stable and reproducible environments.
 
 ## Usage
 
+You can launch the application from anywhere once the virtual environment is active:
+
 ```bash
-python ssl_simulator_vista/main.py
+sslvista
+```
+
+### Options:
+- `-l` / `--layout` : Name of a layout in `grid_layouts` or a relative path to a `.json` layout file.
+- `-data` / `--data-path` : Relative path to the CSV data file.
+- `--list-layouts` : Show all available layouts in `grid_layouts` and exit.
+- `-h` / `--help` : Show the help message.
+
+### Example:
+
+```bash
+# List available layouts
+sslvista -ll
+
+# Use a default 3D layout (providing -data is optional)
+sslvista -l 3d_canvas -data ./data/my_simulation.csv
+
+# Use a custom layout file
+sslvista -l ./layouts/custom_layout.json -data ./data/my_simulation.csv
 ```
 
 ## Credits
