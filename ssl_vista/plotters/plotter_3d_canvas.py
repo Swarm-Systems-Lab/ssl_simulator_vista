@@ -3,7 +3,7 @@ __all__ = ["Plotter3DCanvas"]
 import numpy as np
 import pyvista as pv
 
-from ._base_py_plotter import BaseVisualPlotter
+from ._base_plotters import BaseVisualPlotter
 from .factories import RobotFactory
 
 pv.global_theme.allow_empty_mesh = True
@@ -54,6 +54,8 @@ class Plotter3DCanvas(BaseVisualPlotter):
         self.robot_type = robot_type
         self.robot_tail = robot_tail
         self.default_color = color
+
+        self.context.robot_focus_changed.connect(self._change_robot_focus)
 
     # -------------------------
     # Scene setup / reset
@@ -189,6 +191,7 @@ class Plotter3DCanvas(BaseVisualPlotter):
                 else:
                     R = None
                 self._update_robot_3d(obj, centroid3, R)
+                
                 obj["actor"].visibility = True
                 
         # Final render
@@ -219,3 +222,25 @@ class Plotter3DCanvas(BaseVisualPlotter):
         # apply transform (rotation R around orig_centroid then translation)
         new_pts = transform_points_3d(orig_points, orig_centroid, translation, R)
         mesh.points = new_pts
+
+    def _change_robot_focus(self):
+        """Change the color of a robot mesh."""
+        name_prev = f"robot_{self.context.prev_robot_focus}"
+        name = f"robot_{self.context.robot_focus}"
+
+        if f"{name_prev}.traj" in self.scene_objects:
+            traj_actor_prev = self.scene_objects[f"{name_prev}.traj"]["actor"]
+            traj_actor_prev.prop.color = self.default_color
+
+        if name_prev in self.scene_objects:
+            actor_prev = self.scene_objects[name_prev]["actor"]
+            actor_prev.prop.color = self.default_color
+
+        if name not in self.scene_objects:
+            return
+        if f"{name}.traj" in self.scene_objects:
+            traj_actor = self.scene_objects[f"{name}.traj"]["actor"]
+            traj_actor.prop.color = "red"
+
+        actor = self.scene_objects[name]["actor"]
+        actor.prop.color = "red"

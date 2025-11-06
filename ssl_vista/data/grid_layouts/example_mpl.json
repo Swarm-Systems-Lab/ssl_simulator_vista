@@ -1,0 +1,25 @@
+{
+  "shape": [2, 2],
+  "plotters": [
+    {
+      "type": "Plotter2DCanvas",
+      "position": [0, 0],
+      "args": {
+        "robot_type": "unicycle",
+        "color": "blue"
+      }
+    },
+    {
+      "type": "PlotterMpl",
+      "position": [0, 1],
+      "module_path": "mpl_example.py",
+      "class_name": "PlotterMplExample"
+    },
+    {
+      "type": "PlotterMpl",
+      "position": [1, 0],
+      "module_path": "mpl_example.py",
+      "class_name": "PlotterMplExample"
+    }
+  ]
+}

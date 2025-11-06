@@ -32,4 +32,9 @@ where = ["."]
 exclude = ["output"]
 
 [tool.setuptools.package-data]
-"ssl_vista" = ["data/grid_layouts/*.json", "data/assets/**/*"]
+"ssl_vista" = [
+    "data/assets/**/*",
+    "data/grid_layouts/*.json",
+    "data/grid_layouts/*.py",
+    "data/samples/*.csv"
+]

@@ -6,7 +6,7 @@ import pyvista as pv
 
 from ssl_vista.config import CONFIG
 
-from ._base_py_plotter import BaseVisualPlotter
+from ._base_plotters import BaseVisualPlotter
 from .factories import RobotFactory
 
 pv.global_theme.allow_empty_mesh = True

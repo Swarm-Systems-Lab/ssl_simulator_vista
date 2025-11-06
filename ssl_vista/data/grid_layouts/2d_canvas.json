@@ -1,5 +1,5 @@
 {
-  "shape": [1, 2],
+  "shape": [1, 1],
   "plotters": [
     {
       "type": "Plotter2DCanvas",
@@ -8,10 +8,6 @@
         "robot_type": "unicycle",
         "color": "blue"
       }
-    },
-    {
-      "type": "PlotterMatplotlib",
-      "position": [0, 1]
     }
   ]
 }

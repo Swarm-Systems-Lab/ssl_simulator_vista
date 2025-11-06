@@ -4,24 +4,44 @@ import numpy as np
 import pyvista as pv
 from PyQt5 import QtCore, QtGui
 
-from ._base_py_plotter import BaseVisualPlotter
+from ._base_plotters import BaseVisualPlotter
 from .meshes import create_sphere_grid, create_geodesic, make_dashed_line
-
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QToolBar, QPushButton, QLabel
 
 class Plotter3DAttitude(BaseVisualPlotter):
     """3D Attitude visualizer for a single robot's orientation matrix."""
 
     def __init__(self, parent=None, R_label="robot.R", **kwargs):
-        super().__init__(parent=parent)
-        self.current_agent = 0  # index of the robot currently visualized
+        super().__init__(parent=parent, **kwargs)
+
+        # --- CUSTOM WIDGET SETUP ---
+        custom_widget = QWidget(parent)
+        layout = QVBoxLayout(custom_widget)
+
+        # Add a toolbar at the top
+        toolbar = QToolBar(custom_widget)
+        layout.addWidget(toolbar)
+
+        if self.context.robot_focus is None:
+            self.context.robot_focus = 0
+        self.label = QLabel(f"Robot idx: {self.context.robot_focus}", custom_widget)
+        toolbar.addWidget(self.label)
+
+        # Add the plotter (self) below the toolbar
+        layout.addWidget(self)
+        self.set_widget(custom_widget)
+        
+        # --- VARIABLES ---
         self.num_agents = 1     # updated dynamically when sim_data is provided
         self.current_R = np.eye(3)
 
         self.sim_data = None
         self.R_label = R_label
 
-        # Satatic scene objects
+        # Static scene objects
         self.sphere = None
+
+        self.context.robot_focus_changed.connect(self.update_axes_from_rotation)
 
     # ------------------------------------------------------------------
     # SCENE SETUP
@@ -31,7 +51,7 @@ class Plotter3DAttitude(BaseVisualPlotter):
         self.set_background("white")
         self.show_bounds(grid=True, location="outer", color="black", xtitle="X", ytitle="Y", ztitle="Z")
         self.camera_position = "iso"
-        self.camera.Azimuth(-90)
+        self.camera.Azimuth(-80)
         self.camera.SetParallelProjection(False)
         self.enable_3_lights()
 
@@ -61,10 +81,11 @@ class Plotter3DAttitude(BaseVisualPlotter):
         geo_line2_dashed = make_dashed_line(geo_line2_dashed, dash_length=2)
 
         kw_markers = {"line_width": 3}
+        kw_markers_main = {"line_width": 6}
         self.add_mesh(mesh1, color="grey")
-        self.add_mesh(mesh2, color="black", **kw_markers)
-        self.add_mesh(geo_line1, color="black", **kw_markers)
-        self.add_mesh(geo_line1_dashed, color="black", **kw_markers)
+        self.add_mesh(mesh2, color="black", **kw_markers_main)
+        self.add_mesh(geo_line1, color="black", **kw_markers_main)
+        self.add_mesh(geo_line1_dashed, color="black", **kw_markers_main)
         self.add_mesh(geo_line2, color="black", **kw_markers)
         self.add_mesh(geo_line2_dashed, color="black", **kw_markers)
 
@@ -78,11 +99,11 @@ class Plotter3DAttitude(BaseVisualPlotter):
         for i, (label, color) in enumerate(axis_colors.items()):
             end = origin + np.eye(3)[i]
             line = pv.Line(origin, end)
-            self.add_scene_object(label, line, color=color, line_width=5, visible=False)
+            self.add_scene_object(label, line, color=color, line_width=10, visible=False)
 
     def update_axes_from_rotation(self):
         """Update the attitude axes according to the given rotation matrix."""
-        R = self.current_R[self.current_agent, :, :]
+        R = self.current_R[self.context.robot_focus, :, :]
 
         origin = np.array([0.0, 0.0, 0.0])
         axes = {"x": R[:, 0], "y": R[:, 1], "z": R[:, 2]}
@@ -119,14 +140,12 @@ class Plotter3DAttitude(BaseVisualPlotter):
         key = event.key()
 
         if key == QtCore.Qt.Key_Down:
-            self.current_agent = (self.current_agent - 1) % self.num_agents
-            self.update_axes_from_rotation()
-            print(f"Switched to agent {self.current_agent}")
+            self.context.robot_focus = (self.context.robot_focus - 1) % self.num_agents
+            self.label.setText(f"Robot idx: {self.context.robot_focus}")
             self.render()
         elif key == QtCore.Qt.Key_Up:
-            self.current_agent = (self.current_agent + 1) % self.num_agents
-            self.update_axes_from_rotation()
-            print(f"Switched to agent {self.current_agent}")
+            self.context.robot_focus = (self.context.robot_focus + 1) % self.num_agents
+            self.label.setText(f"Robot idx: {self.context.robot_focus}")
             self.render()
         elif key == QtCore.Qt.Key_R:
             self.reset_camera()

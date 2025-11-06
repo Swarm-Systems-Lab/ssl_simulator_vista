@@ -38,6 +38,7 @@ class MainWindow(QMainWindow):
         # --- Toolbar ---
         self.simulation_toolbar = SimulationToolbar(self)
         self.addToolBar(self.simulation_toolbar)
+        self.simulation_toolbar.setFocusPolicy(Qt.StrongFocus)
 
         # Connect toolbar actions
         self.time_slider = self.simulation_toolbar.time_slider
@@ -206,7 +207,7 @@ class MainWindow(QMainWindow):
             self.updated = False
         self.current_time_index = value
         time_step = self.sim_data['time'][self.current_time_index]
-        self.time_label.setText(f"Time: {time_step:.2f}")
+        self.time_label.setText(f"Time: {time_step:.2f} ")
         self.updated = self.update_simulation()
 
     def update_simulation(self):

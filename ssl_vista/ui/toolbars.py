@@ -1,7 +1,8 @@
 __all__ = ["SimulationToolbar"]
 
 from PyQt5.QtWidgets import QToolBar, QAction, QLabel, QFileDialog, QMessageBox
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from PyQt5.QtGui import QFont
 
 from ssl_vista import CustomSlider
 
@@ -17,6 +18,13 @@ class SimulationToolbar(QToolBar):
         self.setMovable(True)
         self.sim_file_path = None
         self.grid_file_path = None
+
+        font = QFont()
+        font.setPointSize(12)  # Larger font size
+        self.setFont(font)
+        # self.setIconSize(QSize(90, 90))
+        # self.setMinimumHeight(100)
+        # self.setMaximumHeight(200)
 
         # ------------------------------------------------------------------
         # File loading actions
@@ -45,7 +53,7 @@ class SimulationToolbar(QToolBar):
         # ------------------------------------------------------------------
         # Time slider
         # ------------------------------------------------------------------
-        self.time_label = QLabel("Time: 0.00")
+        self.time_label = QLabel("Time: 0.00 ")
         self.addWidget(self.time_label)
 
         self.time_slider = CustomSlider(Qt.Horizontal, self)

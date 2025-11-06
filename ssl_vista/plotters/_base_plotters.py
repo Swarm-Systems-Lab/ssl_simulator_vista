@@ -1,4 +1,9 @@
-__all__ = ["BaseVisualPlotter"]
+__all__ = [
+    "BasePlotter",
+    "BaseVisualPlotter"
+    ]
+
+import os
 
 import numpy as np
 from pyvistaqt import QtInteractor
@@ -7,7 +12,35 @@ from PyQt5 import  QtCore, QtGui
 from ssl_vista import CONFIG
 from .pv_utils import inspect_actor
 
-class BaseVisualPlotter(QtInteractor):
+class BasePlotter:
+    def set_widget(self, widget):
+        """Set the Qt widget for layouts."""
+        self.widget = widget
+
+    def get_widget(self):
+        """Return the Qt widget for layouts."""
+        return self.widget
+    
+    # ---------------------------------------------------------------
+    # ABSTRACT METHODS (must be implemented)
+    # ---------------------------------------------------------------
+    def setup_scene(self):
+        """Set up the initial scene"""
+        raise NotImplementedError("Subclasses must implement setup_scene()")
+
+    def reset_scene(self, sim_data, sim_settings):
+        """Reset the scene to its initial state."""
+        raise NotImplementedError("Subclasses must implement reset_scene()")
+
+    def update_all_scene_objects(self, sim_data, idx):
+        """
+        Update all objects in the scene.
+        Subclasses must implement this to update positions, orientations, etc.
+        """
+        raise NotImplementedError("Subclasses must implement update_all_scene_objects()")
+
+
+class BaseVisualPlotter(BasePlotter, QtInteractor):
     """
     Base class for a PyVista QtInteractor canvas.
     
@@ -17,19 +50,18 @@ class BaseVisualPlotter(QtInteractor):
       - update_all_scene_objects(*args, **kwargs): update positions, orientations, etc.
     """
 
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
+    def __init__(self, parent=None, context=None, **kwargs):
+        super().__init__(parent=parent, **kwargs)
+        self.context = context
+        self.widget = self
 
         # Dictionary storing all scene objects
         # Format: "object_name": {"mesh": mesh, "actor": actor}
         self.scene_objects = {}
 
-        # Ensure proper focus so toolbars get keyboard input
+        # # Ensure proper focus so toolbars get keyboard input
         # self.setFocusPolicy(QtCore.Qt.StrongFocus)
-
-    def get_widget(self):
-        """Return the Qt widget for layouts."""
-        return self
+    
     # ---------------------------------------------------------------
     # ABSTRACT METHODS (must be implemented)
     # ---------------------------------------------------------------
@@ -37,11 +69,11 @@ class BaseVisualPlotter(QtInteractor):
         """Set up the initial scene (camera, actors, grid, etc)."""
         raise NotImplementedError("Subclasses must implement setup_scene()")
 
-    def reset_scene(self, *args, **kwargs):
+    def reset_scene(self, sim_data, sim_settings):
         """Reset the scene to its initial state."""
         raise NotImplementedError("Subclasses must implement reset_scene()")
 
-    def update_all_scene_objects(self, *args, **kwargs):
+    def update_all_scene_objects(self, sim_data, idx):
         """
         Update all objects in the scene.
         Subclasses must implement this to update positions, orientations, etc.
