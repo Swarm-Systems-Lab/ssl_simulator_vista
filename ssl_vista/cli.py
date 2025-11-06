@@ -2,7 +2,8 @@ import typer
 from pathlib import Path
 
 from ssl_vista import CONFIG
-from ssl_vista.data import get_grid_layout_path, list_available_layouts
+from ssl_vista.data import get_grid_layout_path, get_sample_path
+from ssl_vista.data import list_available_layouts, list_available_samples
 from .app import run_app
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
@@ -28,7 +29,13 @@ def run(
         None,
         "-data",
         "--data-path",
-        help="Path to CSV data file"
+        help="Path to CSV data file (or sample name from samples folder)"
+    ),
+    list_data_flag: bool = typer.Option(
+        False,
+        "-ld",
+        "--list-data",
+        help="Show all available testing data samples and exit"
     ),
     auto_play: bool = typer.Option(
         False,
@@ -63,7 +70,7 @@ def run(
     if debug_info:
         CONFIG["DEBUG_INFO"] = debug_info
 
-    # --- Handle listing layouts ---
+    # --- Handle listing layouts and samples ---
     if list_layouts_flag:
         layouts = list_available_layouts()
         if not layouts:
@@ -73,6 +80,16 @@ def run(
             for name in layouts:
                 typer.echo(f"  - {name}")
         raise typer.Exit()
+
+    if list_data_flag:
+        samples = list_available_samples()
+        if not samples:
+            typer.echo("No samples found in samples folder.")
+        else:
+            typer.echo("Available samples:")
+            for name in samples:
+                typer.echo(f"  - {name}")
+        raise typer.Exit()
         
     # --- Handle layout argument ---
     layout_file = None
@@ -80,10 +97,13 @@ def run(
         layout_file = get_grid_layout_path(l)
 
     # --- Handle data argument ---
-    # if data is None:
-    #     raise typer.BadParameter("Data path must be provided with -data / --data-path")
+    data_file = None
+
     if data is not None:
-        data_file = Path(data)
+        if not data.suffix == ".csv":
+            data_file = get_sample_path(data)
+        else:
+            data_file = Path(data)
         if not data_file.exists():
             raise typer.BadParameter(f"Data file '{data}' not found.")
     else:
