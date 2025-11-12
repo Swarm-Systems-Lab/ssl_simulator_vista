@@ -4,6 +4,7 @@ __all__ = [
     "BaseMplPlotter",
     ]
 
+import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
 from PyQt5 import  QtCore, QtGui
