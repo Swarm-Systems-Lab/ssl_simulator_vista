@@ -36,11 +36,14 @@ sslvista
 ```
 
 ### Options:
-- `-l` / `--layout` : Name of a layout in `grid_layouts` or a relative path to a `.json` layout file.
-- `-data` / `--data-path` : Relative path to the CSV data file.
-- `--list-layouts` : Show all available layouts in `grid_layouts` and exit.
-- `-ap` / `--auto-play` : Automatically start the simulation once the data file is loaded.
-- `-h` / `--help` : Show the help message.
+
+- `-l` / `--layout` : Layout type (name from `grid_layouts` folder) or relative path to a `.json` layout file.
+- `-ll` / `--list-layouts` : Show all available layouts from the `grid_layouts` folder and exit.
+- `-data` / `--data-path` : Path to a CSV data file (or sample name from the `samples` folder).
+- `-ld` / `--list-data` : Show all available testing data samples and exit.
+- `-ap` / `--auto-play` : Automatically start the simulation upon loading (data file required).
+- `-dbg` / `--debug` : Enable debug mode for detailed logging.
+- `-dbgi` / `--debug-info` : Enable debug information display in the application.
 
 ### Example:
 
