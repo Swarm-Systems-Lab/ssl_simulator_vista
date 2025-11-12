@@ -224,5 +224,7 @@ def _create_plotter(plotter_type: str, context: dict = None, **kwargs):
     """
     plotter_cls = globals().get(plotter_type)
     if plotter_cls is None:
-        raise ValueError(f"Unknown plotter type: {plotter_type}")
+        available_plotters = [name for name in globals() if name.startswith("Plotter")]
+        raise ValueError(f"Unknown plotter type: {plotter_type}. Available plotters: {['PlotterMpl'] + available_plotters}")
     return plotter_cls(context=context, **kwargs)
+    

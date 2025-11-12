@@ -3,10 +3,10 @@ __all__ = ["Plotter3DAttitude"]
 import numpy as np
 import pyvista as pv
 from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QToolBar, QPushButton, QLabel
 
 from ._base_plotters import BaseVisualPlotter
-from .meshes import create_sphere_grid, create_geodesic, make_dashed_line
-from PyQt5.QtWidgets import QVBoxLayout, QWidget, QToolBar, QPushButton, QLabel
+from .pv_utils.meshes import create_sphere_grid, create_geodesic, make_dashed_line
 
 class Plotter3DAttitude(BaseVisualPlotter):
     """3D Attitude visualizer for a single robot's orientation matrix."""
@@ -28,7 +28,7 @@ class Plotter3DAttitude(BaseVisualPlotter):
         toolbar.addWidget(self.label)
 
         # Add the plotter (self) below the toolbar
-        layout.addWidget(self)
+        layout.addWidget(self.get_widget())
         self.set_widget(custom_widget)
         
         # --- VARIABLES ---
@@ -42,33 +42,36 @@ class Plotter3DAttitude(BaseVisualPlotter):
         self.sphere = None
 
         self.context.robot_focus_changed.connect(self.update_axes_from_rotation)
+        self.pvqt.keyPressEvent = self.keyPressEvent
 
     # ------------------------------------------------------------------
     # SCENE SETUP
     # ------------------------------------------------------------------
     def setup_scene(self):
         """Initialize the 3D attitude visualization scene."""
-        self.set_background("white")
-        self.show_bounds(grid=True, location="outer", color="black", xtitle="X", ytitle="Y", ztitle="Z")
-        self.camera_position = "iso"
-        self.camera.Azimuth(-80)
-        self.camera.SetParallelProjection(False)
-        self.enable_3_lights()
+        self.pvqt.set_background("white")
+        self.pvqt.show_bounds(grid=True, location="outer", color="black", xtitle="X", ytitle="Y", ztitle="Z")
+        self.pvqt.camera_position = "iso"
+        self.pvqt.camera.Azimuth(-80)
+        self.pvqt.camera.SetParallelProjection(False)
+        self.pvqt.enable_3_lights()
 
         # Add sphere grid and 3 attitude vectors (x, y, z axes)
         self._create_sphere_grid()
         self._create_axes_vectors()
 
         # Set a nice default view
-        self.reset_camera()
-        self.render()
+        self.pvqt.reset_camera()
+        self.pvqt.render()
 
     def reset_scene(self, sim_data=None, sim_settings=None):
         self.num_agents = sim_data[self.R_label].shape[1]
+        self.pvqt.reset_camera()
 
     # ------------------------------------------------------------------
     # AXES CREATION AND UPDATE
     # ------------------------------------------------------------------
+    # TODO: Optimize by creating scene object bundles
     def _create_sphere_grid(self):
         """Create a reference sphere mesh."""
         mesh1 = create_sphere_grid(radius=1.0, lat_step=15, lon_step=15)
@@ -82,15 +85,15 @@ class Plotter3DAttitude(BaseVisualPlotter):
 
         kw_markers = {"line_width": 3}
         kw_markers_main = {"line_width": 6}
-        self.add_mesh(mesh1, color="grey")
-        self.add_mesh(mesh2, color="black", **kw_markers_main)
-        self.add_mesh(geo_line1, color="black", **kw_markers_main)
-        self.add_mesh(geo_line1_dashed, color="black", **kw_markers_main)
-        self.add_mesh(geo_line2, color="black", **kw_markers)
-        self.add_mesh(geo_line2_dashed, color="black", **kw_markers)
+        self.pvqt.add_mesh(mesh1, color="grey")
+        self.pvqt.add_mesh(mesh2, color="black", **kw_markers_main)
+        self.pvqt.add_mesh(geo_line1, color="black", **kw_markers_main)
+        self.pvqt.add_mesh(geo_line1_dashed, color="black", **kw_markers_main)
+        self.pvqt.add_mesh(geo_line2, color="black", **kw_markers)
+        self.pvqt.add_mesh(geo_line2_dashed, color="black", **kw_markers)
 
         self.sphere = pv.Sphere(radius=1.0, theta_resolution=30, phi_resolution=30)
-        self.add_mesh(self.sphere, color="lightgray", opacity=0.05)
+        self.pvqt.add_mesh(self.sphere, color="lightgray", opacity=0.05)
 
     def _create_axes_vectors(self):
         """Create initial x, y, z attitude vectors."""
@@ -107,13 +110,13 @@ class Plotter3DAttitude(BaseVisualPlotter):
 
         origin = np.array([0.0, 0.0, 0.0])
         axes = {"x": R[:, 0], "y": R[:, 1], "z": R[:, 2]}
-
+        
         for label, vec in axes.items():
-            mesh = self.scene_objects[label]["mesh"]
-            mesh.points[0] = origin
-            mesh.points[1] = vec
-            mesh.Modified()
-            self.scene_objects[label]["actor"].SetVisibility(True)
+            obj = self.scene_objects[label]
+            obj.mesh.points[0] = origin
+            obj.mesh.points[1] = vec
+            obj.mesh.Modified()
+            obj.set_visibility(True)
 
     # ------------------------------------------------------------------
     # DATA HANDLING
@@ -130,7 +133,7 @@ class Plotter3DAttitude(BaseVisualPlotter):
 
         self.current_R = sim_data[self.R_label][idx, :, :, :]
         self.update_axes_from_rotation()
-        self.render()
+        self.pvqt.render()
 
     # ------------------------------------------------------------------
     # KEYBOARD CONTROL
@@ -138,15 +141,14 @@ class Plotter3DAttitude(BaseVisualPlotter):
     def keyPressEvent(self, event: QtGui.QKeyEvent):
         """Use PageUp/PageDown to switch between robots."""
         key = event.key()
-
-        if key == QtCore.Qt.Key_Down:
+        if key == QtCore.Qt.Key_PageDown:
             self.context.robot_focus = (self.context.robot_focus - 1) % self.num_agents
             self.label.setText(f"Robot idx: {self.context.robot_focus}")
-            self.render()
-        elif key == QtCore.Qt.Key_Up:
+            self.pvqt.render()
+        elif key == QtCore.Qt.Key_PageUp:
             self.context.robot_focus = (self.context.robot_focus + 1) % self.num_agents
             self.label.setText(f"Robot idx: {self.context.robot_focus}")
-            self.render()
+            self.pvqt.render()
         elif key == QtCore.Qt.Key_R:
-            self.reset_camera()
+            self.pvqt.reset_camera()
         event.accept()

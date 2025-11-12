@@ -70,7 +70,6 @@ def latlon_to_xyz(lat_deg, lon_deg, radius=1.0):
     z = radius * np.sin(lat)
     return np.array([x, y, z])
 
-
 def create_geodesic(latlon_start, latlon_end, radius=1.0, n_points=100):
     """
     Create a PolyData line along the geodesic between two lat/lon points on a sphere.

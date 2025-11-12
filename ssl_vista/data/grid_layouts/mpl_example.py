@@ -3,18 +3,20 @@ import matplotlib.pyplot as plt
 
 from ssl_vista import BaseMplPlotter
 
+from ssl_simulator.visualization import set_paper_parameters
+set_paper_parameters(fontsize=24)
+
 class PlotterMplExample(BaseMplPlotter):
     """
     Matplotlib plotter compatible with Qt layout.
     """
 
-    def __init__(self, figsize=(5,4), dpi=100, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.axes_config = {"main": {"position": [0.1,0.1,0.8,0.8]}}
 
     def init_artists(self, sim_data, sim_settings):
         self.artists = {}
-        self.artists_list = []
 
         # Extract the first element in sim_data that is not "time"
         self.n_robots = next(value for key, value in sim_data.items() if key != "time").shape[1]
@@ -32,9 +34,6 @@ class PlotterMplExample(BaseMplPlotter):
         for i in range(self.n_robots):
             line, = ax.plot([], [], color="royalblue", lw=2, label=f"Robot {i}")
             self.artists["lines"].append(line)
-
-        # Prepare for blitting/updates
-        self.artists_list = self.artists["lines"]
 
     def update_artists(self, sim_data, idx):
         """Wrapper called by FuncAnimation or manual update"""
