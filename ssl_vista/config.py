@@ -15,5 +15,6 @@ class Config(dict):
 # Initialize the configuration dictionary
 CONFIG = Config({
     "DEBUG": os.getenv("SSL_VISTA_DEBUG", "False").lower() in ("true", "1", "yes"),
-    "DEBUG_INFO": os.getenv("SSL_VISTA_DEBUG_INFO", "False").lower() in ("true", "1", "yes")
+    "DEBUG_INFO": os.getenv("SSL_VISTA_DEBUG_INFO", "False").lower() in ("true", "1", "yes"),
+    "WARNINGS": os.getenv("SSL_VISTA_WARNINGS", "True").lower() in ("true", "1", "yes"),
 })

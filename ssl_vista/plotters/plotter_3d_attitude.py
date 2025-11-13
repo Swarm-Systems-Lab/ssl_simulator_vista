@@ -6,14 +6,14 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QToolBar, QPushButton, QLabel
 
 from ._base_plotters import BaseVisualPlotter
-from .pv_utils.meshes import create_sphere_grid, create_geodesic, make_dashed_line
+from .pv_utils.scene_objects import AxesBundle, SphereGridBundle
 
 class Plotter3DAttitude(BaseVisualPlotter):
     """3D Attitude visualizer for a single robot's orientation matrix."""
 
-    def __init__(self, parent=None, R_label="robot.R", **kwargs):
+    def __init__(self, parent=None, label_rot="robot.R", **kwargs):
         super().__init__(parent=parent, **kwargs)
-
+        
         # --- CUSTOM WIDGET SETUP ---
         custom_widget = QWidget(parent)
         layout = QVBoxLayout(custom_widget)
@@ -30,18 +30,21 @@ class Plotter3DAttitude(BaseVisualPlotter):
         # Add the plotter (self) below the toolbar
         layout.addWidget(self.get_widget())
         self.set_widget(custom_widget)
-        
-        # --- VARIABLES ---
-        self.num_agents = 1     # updated dynamically when sim_data is provided
+        # ---------------------------
+
+        # - Simulation data info (updated dynamically when sim_data is provided)
+        self.num_agents = 1     
         self.current_R = np.eye(3)
 
-        self.sim_data = None
-        self.R_label = R_label
+        # - Simulation data labels
+        self.label_rot = label_rot
 
-        # Static scene objects
-        self.sphere = None
+        # - Static scene objects
+        self.obj_axes = None
+        self.obj_sphere = None
 
-        self.context.robot_focus_changed.connect(self.update_axes_from_rotation)
+        # - Connect to context signals
+        self.context.robot_focus_changed.connect(self._rotate_axes)
         self.pvqt.keyPressEvent = self.keyPressEvent
 
     # ------------------------------------------------------------------
@@ -57,82 +60,38 @@ class Plotter3DAttitude(BaseVisualPlotter):
         self.pvqt.enable_3_lights()
 
         # Add sphere grid and 3 attitude vectors (x, y, z axes)
-        self._create_sphere_grid()
-        self._create_axes_vectors()
-
+        self.obj_axes = AxesBundle()
+        self.obj_sphere = SphereGridBundle(radius=1.0)
+        self.add_scene_object_bundle("axes", self.obj_axes)
+        self.add_scene_object_bundle("sphere_grid", self.obj_sphere)
+        
         # Set a nice default view
         self.pvqt.reset_camera()
-        self.pvqt.render()
 
     def reset_scene(self, sim_data=None, sim_settings=None):
-        self.num_agents = sim_data[self.R_label].shape[1]
+        self.num_agents = sim_data[self.label_rot].shape[1]
         self.pvqt.reset_camera()
-
-    # ------------------------------------------------------------------
-    # AXES CREATION AND UPDATE
-    # ------------------------------------------------------------------
-    # TODO: Optimize by creating scene object bundles
-    def _create_sphere_grid(self):
-        """Create a reference sphere mesh."""
-        mesh1 = create_sphere_grid(radius=1.0, lat_step=15, lon_step=15)
-        mesh2 = create_sphere_grid(radius=1.0, lat_step=90, lon_step=None)
-        geo_line1 = create_geodesic((-89.9,0), (90,0), radius=1.0, n_points=40)
-        geo_line1_dashed = create_geodesic((-90.1,0), (90,0), radius=1.0, n_points=60)
-        geo_line1_dashed = make_dashed_line(geo_line1_dashed, dash_length=3)
-        geo_line2 = create_geodesic((-89.9,90), (90,90), radius=1.0, n_points=40)
-        geo_line2_dashed = create_geodesic((-90.1,90), (90,90), radius=1.0, n_points=60)
-        geo_line2_dashed = make_dashed_line(geo_line2_dashed, dash_length=2)
-
-        kw_markers = {"line_width": 3}
-        kw_markers_main = {"line_width": 6}
-        self.pvqt.add_mesh(mesh1, color="grey")
-        self.pvqt.add_mesh(mesh2, color="black", **kw_markers_main)
-        self.pvqt.add_mesh(geo_line1, color="black", **kw_markers_main)
-        self.pvqt.add_mesh(geo_line1_dashed, color="black", **kw_markers_main)
-        self.pvqt.add_mesh(geo_line2, color="black", **kw_markers)
-        self.pvqt.add_mesh(geo_line2_dashed, color="black", **kw_markers)
-
-        self.sphere = pv.Sphere(radius=1.0, theta_resolution=30, phi_resolution=30)
-        self.pvqt.add_mesh(self.sphere, color="lightgray", opacity=0.05)
-
-    def _create_axes_vectors(self):
-        """Create initial x, y, z attitude vectors."""
-        origin = np.array([0.0, 0.0, 0.0])
-        axis_colors = {"x": "red", "y": "green", "z": "blue"}
-        for i, (label, color) in enumerate(axis_colors.items()):
-            end = origin + np.eye(3)[i]
-            line = pv.Line(origin, end)
-            self.add_scene_object(label, line, color=color, line_width=10, visible=False)
-
-    def update_axes_from_rotation(self):
-        """Update the attitude axes according to the given rotation matrix."""
-        R = self.current_R[self.context.robot_focus, :, :]
-
-        origin = np.array([0.0, 0.0, 0.0])
-        axes = {"x": R[:, 0], "y": R[:, 1], "z": R[:, 2]}
-        
-        for label, vec in axes.items():
-            obj = self.scene_objects[label]
-            obj.mesh.points[0] = origin
-            obj.mesh.points[1] = vec
-            obj.mesh.Modified()
-            obj.set_visibility(True)
 
     # ------------------------------------------------------------------
     # DATA HANDLING
     # ------------------------------------------------------------------
+    def _rotate_axes(self):
+        """Rotate the axes to match the current robot's orientation."""
+        R = self.current_R[self.context.robot_focus, :, :]
+        self.obj_axes.transform_to(R=R)
+
     def update_all_scene_objects(self, sim_data, idx):
-        """4
+        """
         Update attitude visualization from simulation data.
 
-        sim_data[self.R_label] should have shape (T, N, 3, 3),
+        sim_data[self.label_rot] should have shape (T, N, 3, 3),
         where T = time steps, N = number of robots.
         """
-        if self.R_label not in sim_data:
-            raise KeyError(f"sim_data must contain '{self.R_label}' key for attitude visualization")
+        if self.label_rot not in sim_data:
+            raise KeyError(f"sim_data must contain '{self.label_rot}' key for attitude visualization")
 
-        self.current_R = sim_data[self.R_label][idx, :, :, :]
-        self.update_axes_from_rotation()
+        self.current_R = sim_data[self.label_rot][idx, :, :, :]
+        self._rotate_axes()
         self.pvqt.render()
 
     # ------------------------------------------------------------------
@@ -142,13 +101,15 @@ class Plotter3DAttitude(BaseVisualPlotter):
         """Use PageUp/PageDown to switch between robots."""
         key = event.key()
         if key == QtCore.Qt.Key_PageDown:
-            self.context.robot_focus = (self.context.robot_focus - 1) % self.num_agents
-            self.label.setText(f"Robot idx: {self.context.robot_focus}")
-            self.pvqt.render()
+            if self.num_agents > 0:
+                self.context.robot_focus = (self.context.robot_focus - 1) % self.num_agents
+                self.label.setText(f"Robot idx: {self.context.robot_focus}")
+                self.pvqt.render()
         elif key == QtCore.Qt.Key_PageUp:
-            self.context.robot_focus = (self.context.robot_focus + 1) % self.num_agents
-            self.label.setText(f"Robot idx: {self.context.robot_focus}")
-            self.pvqt.render()
+            if self.num_agents > 0:
+                self.context.robot_focus = (self.context.robot_focus + 1) % self.num_agents
+                self.label.setText(f"Robot idx: {self.context.robot_focus}")
+                self.pvqt.render()
         elif key == QtCore.Qt.Key_R:
             self.pvqt.reset_camera()
         event.accept()

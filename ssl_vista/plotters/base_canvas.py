@@ -6,9 +6,7 @@ import pyvista as pv
 
 from ._base_plotters import BaseVisualPlotter
 from .pv_utils.canvas_grid import CanvasGrid
-from .pv_utils.scene_objects import Icon2D, Icon3D, Line
-
-pv.global_theme.allow_empty_mesh = True
+from .pv_utils.scene_objects import Robot2D, Robot3D
 
 class BaseCanvasPlotter(BaseVisualPlotter):
     """
@@ -32,6 +30,7 @@ class BaseCanvasPlotter(BaseVisualPlotter):
         
         self.dimension = dimension
         self.sim_data_labels = sim_data_labels or {}
+        self._robot_objs = []
 
         # - Simulation data labels
         if sim_data_labels is None:
@@ -45,9 +44,6 @@ class BaseCanvasPlotter(BaseVisualPlotter):
             canvas_grid_ticks = [11, 11] if dimension == 2 else [11, 11, 11]
 
         self.canvas_grid = CanvasGrid(self.pvqt, dimension=dimension, range=canvas_grid_range, ticks=canvas_grid_ticks)
-
-        # - Connect to context signals
-        self.context.robot_focus_changed.connect(self._robot_focus_changed)
 
     # ---------------------------------------------------------------
     # SETUP/RESET SCENE
@@ -104,33 +100,16 @@ class BaseCanvasPlotter(BaseVisualPlotter):
     # ---------------------------------------------------------------
     # CANVAS HELPER METHODS
     # ---------------------------------------------------------------
-    def add_robot(self, name, icon_type, color="blue", visible=False, **kwargs):
+    def add_robot(self, name, icon_type, visible=True, **kwargs):
         # - Create the robot mesh
         if self.dimension == 2:
-            robot_icon = Icon2D(icon_type)
+            obj_robot = Robot2D(icon_type, visible=visible, **kwargs)
         else:
-            robot_icon = Icon3D(icon_type)
+            obj_robot = Robot3D(icon_type, visible=visible, **kwargs)
 
-        self.add_scene_object(
-            name = name, 
-            obj = robot_icon, 
-            color = color, 
-            visible = visible,
-            **kwargs
-        )
-        
-        # - Trajectory placeholder (empty)
-        obj_line = Line()
-        self.add_scene_object(
-            name = f"{name}.traj",
-            obj=obj_line,
-            color = color, 
-            visible = visible,
-            line_width = 2,
-            **kwargs
-        )
-        
-        return name, name + ".traj"
+        self.add_scene_object_bundle(name, obj_robot)
+        self._robot_objs.append(obj_robot)
+        return obj_robot
 
     def set_grid_centroid(self, centroid):
         """Set the canvas grid centroid."""
@@ -166,20 +145,10 @@ class BaseCanvasPlotter(BaseVisualPlotter):
     # ---------------------------------------------------------------
     # CONTEXT SIGNALS CALLBACKS
     # ---------------------------------------------------------------
-    def _robot_focus_changed(self):
-        name_prv_focus = f"robot_{self.context.prev_robot_focus}"
-        name_new_focus = f"robot_{self.context.robot_focus}"
-        self.when_change_robot_focus(name_new_focus, name_prv_focus)
-
     # To be modified by subclasses if needed
-    def when_change_robot_focus(self, new_focus, prev_focus):
+    def when_change_robot_focus(self, idx_new_focus, idx_prv_focus):
         """Handle changes in robot focus from the context."""
-        if self.in_scene((prev_focus, f"{prev_focus}.traj")):
-            robot, traj = self.get_robot_objects(prev_focus)
-            traj.set_color(robot.default_color)
-            robot.set_color(robot.default_color)
-
-        if self.in_scene((new_focus, f"{new_focus}.traj")):
-            robot, traj = self.get_robot_objects(new_focus)
-            traj.set_color("red")
-            robot.set_color("red")
+        if idx_new_focus is not None and len(self._robot_objs) > idx_new_focus:
+            if idx_prv_focus is not None and len(self._robot_objs) > idx_prv_focus:
+                self._robot_objs[idx_prv_focus].set_focus(False)
+            self._robot_objs[idx_new_focus].set_focus(True)

@@ -3,7 +3,7 @@ __all__ = ["Plotter3DCanvas"]
 import numpy as np
 import pyvista as pv
 
-from .plotter_canvas import BaseCanvasPlotter
+from .base_canvas import BaseCanvasPlotter
 
 class Plotter3DCanvas(BaseCanvasPlotter):
     """
@@ -13,7 +13,9 @@ class Plotter3DCanvas(BaseCanvasPlotter):
             self, 
             robot_type="unicycle", 
             robot_tail=500,
-            robot_color="blue",
+            robot_color="darkgrey",
+            robot_size=0.5,
+            robot_axes=True,
             label_pos="robot.p",
             label_rot="robot.R",
             **kwargs):
@@ -23,14 +25,14 @@ class Plotter3DCanvas(BaseCanvasPlotter):
         self.robot_type = robot_type
         self.robot_tail = robot_tail
         self.robot_color = robot_color
+        self.robot_size = robot_size
+        self.robot_axes = robot_axes
 
         # - Simulation data labels
         self.label_pos = label_pos
         self.label_rot = label_rot
 
-        self.n_robots = 0
-        self.robot_icons = []
-        self.robot_trajs = []
+        self.robot_objs = []
         
     def init_artists(self, sim_data, sim_settings):
         """Initialize robots, trajectories, and vectors."""
@@ -44,21 +46,22 @@ class Plotter3DCanvas(BaseCanvasPlotter):
         if data_pos is None:
             raise ValueError(f"sim_data does not contain positions under '{self.label_pos}'")
 
-        self.n_robots = data_pos.shape[1]
+        n_robots = data_pos.shape[1]
 
         # - Create robot meshes and trajectory placeholders
         base_name = "robot_"
         robots_kwargs = [{
             "name": f"{base_name}{i}", 
             "icon_type": self.robot_type, 
-            "color": self.robot_color
-        } for i in range(self.n_robots)]
+            "color": self.robot_color,
+            "size": self.robot_size,
+            "axes": self.robot_axes
+        } for i in range(n_robots)]
 
         for i, robot_kwargs in enumerate(robots_kwargs):
-            icon_name, traj_name = self.add_robot(**robot_kwargs)
-            self.robot_icons.append(icon_name)
-            self.robot_trajs.append(traj_name)
-            self.scene_objects[icon_name].transform_to(
+            obj_robot = self.add_robot(**robot_kwargs)
+            self.robot_objs.append(obj_robot)
+            obj_robot.transform_to(
                 centroid = data_pos[0, i, :],
                 R = data_rot[0, i, :, :] if data_rot is not None else None
             )
@@ -75,22 +78,17 @@ class Plotter3DCanvas(BaseCanvasPlotter):
         data_rot = sim_data.get(self.label_rot)
 
         # - For each robot, update robot icon and trajectory meshes
-        for i, icon_key in enumerate(self.robot_icons):
-            icon_obj = self.scene_objects[icon_key]
+        for i, robot_obj in enumerate(self.robot_objs):
             centroid3 = data_pos[idx, i, :]  # shape (3,)
             R = data_rot[idx, i, :, :] if data_rot is not None else None
+            robot_obj.transform_to(centroid3, R)
 
-            icon_obj.transform_to(centroid3, R)
-            icon_obj.set_visibility(True)
-
-        for i, traj_key in enumerate(self.robot_trajs):
-            traj_obj = self.scene_objects[traj_key]
             traj_positions = data_pos[0:idx, i, :] # shape (idx,3)
             if self.robot_tail is not None and traj_positions.shape[0] > self.robot_tail:
                 traj_positions = traj_positions[-self.robot_tail :, :]
-            
-            traj_obj.set_points(traj_positions)
-            traj_obj.set_visibility(True)
+            robot_obj.set_traj_points(traj_positions)
+
+            robot_obj.set_visibility(True)
         
         # - Update the canvas grid center
         new_center = np.array([data_pos[idx,...].mean(axis=0).tolist()])

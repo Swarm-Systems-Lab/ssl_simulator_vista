@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from ssl_vista import CONFIG
-from .pv_utils.scene_objects import SceneObject
+from .pv_utils.scene_objects import SceneObject, SceneObjectBundle
 from .pv_utils.debug import inspect_actor
 
 class BasePlotter:
@@ -69,6 +69,9 @@ class BaseVisualPlotter(BasePlotter):
         # - Ensure proper focus so toolbars get keyboard input
         # self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
+        # - Connect to context signals
+        self.context.robot_focus_changed.connect(self._robot_focus_changed)
+
     # ---------------------------------------------------------------
     # ABSTRACT METHODS (must be implemented)
     # ---------------------------------------------------------------
@@ -86,6 +89,13 @@ class BaseVisualPlotter(BasePlotter):
         Subclasses must implement this to update positions, orientations, etc.
         """
         raise NotImplementedError("Subclasses must implement update_all_scene_objects()")
+
+    # ---------------------------------------------------------------
+    # ABSTRACT CONTEXT SIGNALS CALLBACKS (can be overridden)
+    # ---------------------------------------------------------------
+    def when_change_robot_focus(self, idx_new_focus, idx_prv_focus):
+        """Handle robot focus change. Can be overridden by subclasses."""
+        pass
     
     # ---------------------------------------------------------------
     # PYVISTA QTINTERACTOR SHORTHCUTS
@@ -111,7 +121,7 @@ class BaseVisualPlotter(BasePlotter):
     # ---------------------------------------------------------------
     # SCENE OBJECT MANAGEMENT
     # ---------------------------------------------------------------
-    def add_scene_object(self, name: str, mesh: pv.MatrixLike = None, obj: SceneObject = None, visible=True, **kwargs):
+    def add_scene_object(self, name: str, obj: SceneObject = None, mesh: pv.MatrixLike = None, **style):
         """
         Add a mesh to the scene and store it.
         
@@ -135,15 +145,65 @@ class BaseVisualPlotter(BasePlotter):
 
         if mesh is None and obj is None:
             raise ValueError("Either 'mesh' or 'obj' must be provided.")
+        
+        if mesh is not None and obj is not None and CONFIG["WARNINGS"]:
+            print("[WARNING] Both 'mesh' and 'obj' were provided. Only the 'obj' parameter will be used, and 'mesh' will be ignored.")
 
         if obj is not None:
-            actor = self.pvqt.add_mesh(obj.mesh, **kwargs)
+            actor = self.pvqt.add_mesh(obj.mesh, **style)
             obj.actor = actor
             self.scene_objects[name] = obj
         else:
-            actor = self.pvqt.add_mesh(mesh, **kwargs)
+            # Extract "visible" if present in style
+            visible = style.pop("visible", True)
+
+            # Add the child object with its styling
+            actor = self.pvqt.add_mesh(mesh, **style)
             actor.visibility = visible
             self.scene_objects[name] = SceneObject(actor=actor, mesh=mesh)
+
+    def add_scene_object_bundle(self, bundle_name: str, bundle: SceneObjectBundle):
+        """
+        Add all children from a SceneObjectBundle to the scene.
+        
+        Each child will be registered with the name: "{bundle_name}.{child_name}"
+        
+        Parameters
+        ----------
+        bundle_name : str
+            Prefix for all child objects
+        bundle : SceneObjectBundle
+            The bundle containing multiple scene objects or nested bundles
+        
+        Returns
+        -------
+        bundle : SceneObjectBundle
+            The same bundle (for chaining)
+        
+        Example
+        -------
+        sphere_bundle = SphereGridBundle(radius=1.0)
+        self.add_scene_object_bundle("sphere_grid", sphere_bundle)
+        """
+        for child_name, child_data in bundle.children.items():
+            obj = child_data["obj"]
+            style = child_data["style"]
+            full_name = f"{bundle_name}.{child_name}"
+
+            # Check if the object is another SceneObjectBundle
+            if isinstance(obj, SceneObjectBundle):
+                self.add_scene_object_bundle(full_name, obj)
+            else:
+                # Extract "visible" if present in style
+                visible = style.pop("visible", True)
+                
+                # Add the child object with its styling
+                actor = self.pvqt.add_mesh(obj.mesh, **style)
+                actor.visibility = visible
+                obj.actor = actor
+                self.scene_objects[full_name] = obj
+        
+        return bundle
 
     def remove_scene_object(self, name: str):
         """Remove a scene object from the plotter."""
@@ -151,6 +211,28 @@ class BaseVisualPlotter(BasePlotter):
             actor = self.scene_objects[name].actor
             self.pvqt.remove_actor(actor)
             del self.scene_objects[name]
+    
+    def remove_scene_object_bundle(self, bundle_name: str):
+        """
+        Remove all scene objects that belong to a bundle.
+        
+        Parameters
+        ----------
+        bundle_name : str
+            The prefix used when adding the bundle
+        """
+        # Find all objects with this prefix
+        keys_to_remove = [k for k in self.scene_objects.keys() if k.startswith(f"{bundle_name}_")]
+        for key in keys_to_remove:
+            self.remove_scene_object(key)
+
+    # ---------------------------------------------------------------
+    # CONTEXT SIGNALS CALLBACKS
+    # ---------------------------------------------------------------
+    def _robot_focus_changed(self):
+        idx_prv_focus = self.context.prev_robot_focus
+        idx_new_focus = self.context.robot_focus
+        self.when_change_robot_focus(idx_new_focus, idx_prv_focus)
 
     # ---------------------------------------------------------------
     # DEBUGGING

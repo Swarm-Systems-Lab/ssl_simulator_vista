@@ -25,9 +25,10 @@ class RobotFactory:
     def create(self, robot_type="default", **kwargs):
         """Return a simple PolyData mesh for the specified robot type."""
         if self.dimension == 3:
-            return self._create_3d(robot_type, **kwargs)
+            mesh = self._create_3d(robot_type, **kwargs)
         else:
-            return self._create_2d(robot_type, **kwargs)
+            mesh = self._create_2d(robot_type, **kwargs)
+        return self._bound_to_unit_cube(mesh)
 
     # ------------------------------------------------------------------
     # 2D SHAPES
@@ -59,8 +60,6 @@ class RobotFactory:
         mesh = pv.PolyData()
         mesh.points = np.hstack([verts, np.zeros((verts.shape[0], 1))])
         mesh.faces = np.hstack([faces])
-        mesh.field_data["orig_points"] = mesh.points.copy()
-        mesh.field_data["orig_centroid"] = mesh.center
         return mesh
 
     # ------------------------------------------------------------------
@@ -105,7 +104,20 @@ class RobotFactory:
 
         else:
             raise ValueError(f"Unknown 3D robot type '{robot_type}'")
+        return mesh
 
-        mesh.field_data["orig_points"] = mesh.points.copy()
-        mesh.field_data["orig_centroid"] = mesh.center
+    def _bound_to_unit_cube(self, mesh):
+        """Scale and translate the mesh to fit within a 1x1x1 cube."""
+        bounds = np.array(mesh.bounds).reshape(3, 2)
+
+        scales = np.ones(3)
+        if self.dimension == 2:
+            scales[0:2] = scales[0:2] = 1 / (bounds[0:2, 1] - bounds[0:2, 0])
+        else:
+            scales = 1 / (bounds[:, 1] - bounds[:, 0])
+
+        scale_factor = scales.min()
+        center = bounds.mean(axis=1)
+        mesh.scale([scale_factor] * 3, inplace=True)
+        mesh.translate(-center * scale_factor, inplace=True)
         return mesh
