@@ -2,7 +2,7 @@ import sys
 import signal
 from PyQt5.QtWidgets import QApplication
 
-from ssl_vista import MainWindow
+from ssl_vista.ui import MainWindow
 
 def run_app(layout: str, data_path: str, auto_play: bool = False):
     app = QApplication(sys.argv)

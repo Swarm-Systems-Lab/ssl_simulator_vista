@@ -5,10 +5,10 @@ import pyvista as pv
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QToolBar, QPushButton, QLabel
 
-from ._base_plotters import BaseVisualPlotter
-from .pv_utils.scene_objects import AxesBundle, SphereGridBundle
+from ._base_plotters import _BaseVisualPlotter
+from .pv_utils.scene_objects import Axes, SphereGrid
 
-class Plotter3DAttitude(BaseVisualPlotter):
+class Plotter3DAttitude(_BaseVisualPlotter):
     """3D Attitude visualizer for a single robot's orientation matrix."""
 
     def __init__(self, parent=None, label_rot="robot.R", **kwargs):
@@ -60,16 +60,17 @@ class Plotter3DAttitude(BaseVisualPlotter):
         self.pvqt.enable_3_lights()
 
         # Add sphere grid and 3 attitude vectors (x, y, z axes)
-        self.obj_axes = AxesBundle()
-        self.obj_sphere = SphereGridBundle(radius=1.0)
-        self.add_scene_object_bundle("axes", self.obj_axes)
-        self.add_scene_object_bundle("sphere_grid", self.obj_sphere)
+        self.obj_axes = Axes()
+        self.obj_sphere = SphereGrid(radius=1.0)
+        self.add_scene_object("axes", self.obj_axes)
+        self.add_scene_object("sphere_grid", self.obj_sphere)
         
         # Set a nice default view
         self.pvqt.reset_camera()
 
     def reset_scene(self, sim_data=None, sim_settings=None):
         self.num_agents = sim_data[self.label_rot].shape[1]
+        self.print_scene_objects()
         self.pvqt.reset_camera()
 
     # ------------------------------------------------------------------

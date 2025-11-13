@@ -1,12 +1,12 @@
 __all__ = [
-    "SceneObject",
-    "SceneObjectBundle",
     "Icon2D",
     "Icon3D",
     "Line",
     "StraightLine",
-    "AxesBundle",
-    "SphereGridBundle",
+    "Vector",
+    "Axes",
+    "SphereGrid",
+    "VectorField"
 ]
 
 from calendar import c
@@ -19,7 +19,7 @@ from .factories import RobotFactory
 pv.global_theme.allow_empty_mesh = True
 
 class SceneObject:
-    def __init__(self, mesh: pv.DataSet, actor: pv.Actor = None, size: float = 1.0):
+    def __init__(self, mesh: pv.DataSet, actor: pv.Actor = None, size: float = 1.0, **style):
         """
         A base class for scene objects that encapsulates a mesh and its actor.
 
@@ -38,6 +38,8 @@ class SceneObject:
         if size != 1.0:
             self.scale(size)
         self.default_mesh = mesh.copy()
+
+        self.style = style
 
     # ---------------------------------------------------------------
     # METHODS WHICH CAN BE OVERIDDEN BY SUBCLASSES
@@ -58,6 +60,11 @@ class SceneObject:
             if self.default_color is None:
                 self.default_color = self.actor.prop.color
             self.actor.prop.color = color
+
+    def set_opacity(self, opacity: float):
+        """Set the opacity of the object."""
+        if self.actor is not None:
+            self.actor.prop.opacity = opacity
 
     def set_visibility(self, visible: bool):
         """Set the visibility of the object."""
@@ -495,11 +502,49 @@ class StraightLine(SceneObject):
         line = pv.Line(start, end)
         super().__init__(mesh=line)
 
+class Vector(SceneObject):
+    """This class is a wrapper of the pv.Arrow object made for better integration"""
+
+    def __init__(self, origin: np.ndarray, direction: np.ndarray, scale: float = 1.0, **kwargs):
+        """
+        Create a vector object.
+
+        Parameters
+        ----------
+        origin : np.ndarray
+            A 1D array of shape (3,) representing the starting point of the vector.
+        direction : np.ndarray
+            A 1D array of shape (3,) representing the direction and magnitude of the vector.
+        scale : float
+            A scaling factor for the arrow.
+        **kwargs : dict
+            Additional styling arguments for the arrow.
+        """
+        self.scale = scale
+        arrow = pv.Arrow(start=origin, direction=direction, scale=self.scale)
+        super().__init__(mesh=arrow, **kwargs)
+
+    def update_vector(self, origin: np.ndarray, direction: np.ndarray):
+        """
+        Update the origin, direction, and optionally the scale of the vector.
+
+        Parameters
+        ----------
+        origin : np.ndarray
+            A 1D array of shape (3,) representing the new starting point of the vector.
+        direction : np.ndarray
+            A 1D array of shape (3,) representing the new direction and magnitude of the vector.
+        scale : float, optional
+            A new scaling factor for the arrow. If None, the current scale is used.
+        """
+        arrow = pv.Arrow(start=origin, direction=direction, scale=self.scale)
+        self.update_mesh(arrow)
+
 # ------------------------------------------------------------------
 # COMPOSITE/BUNDLE SCENE OBJECTS
 # ------------------------------------------------------------------
 
-class AxesBundle(SceneObjectBundle):
+class Axes(SceneObjectBundle):
     """
     A bundle representing the x, y, z attitude vectors (axes).
     """
@@ -564,7 +609,7 @@ class Robot2D(SceneObjectBundle):
     
     Example usage:
         robot_bundle = Robot2D(robot_type="unicycle", color="blue")
-        plotter.add_scene_object_bundle("robot", robot_bundle)
+        plotter.add_scene_object("robot", robot_bundle)
     """
     
     def __init__(
@@ -609,11 +654,11 @@ class Robot3D(SceneObjectBundle):
     This bundle contains:
         - The robot mesh (Icon3D)
         - The robot trajectory (Line)
-        - The attitude axes (AxesBundle)
+        - The attitude axes (Axes)
     
     Example usage:
         robot_bundle = Robot3D(robot_type="unicycle", color="blue")
-        plotter.add_scene_object_bundle("robot", robot_bundle)
+        plotter.add_scene_object("robot", robot_bundle)
     """
     
     def __init__(self, 
@@ -647,7 +692,7 @@ class Robot3D(SceneObjectBundle):
 
         # Create attitude axes
         if axes:
-            self.axes = AxesBundle(size=size)
+            self.axes = Axes(size=size)
             self.add_child("axes", self.axes, set_color=False, **kwargs)
         else:
             self.axes = None
@@ -660,7 +705,7 @@ class Robot3D(SceneObjectBundle):
     def set_traj_points(self, new_points: np.ndarray):
         self.traj.set_points(new_points)
     
-class SphereGridBundle(SceneObjectBundle):
+class SphereGrid(SceneObjectBundle):
     """
     A pre-configured bundle for the sphere grid visualization used in 
     the 3D attitude plotter. This creates a composite object with:
@@ -672,14 +717,10 @@ class SphereGridBundle(SceneObjectBundle):
     Example usage:
         from .pv_utils.meshes import create_sphere_grid, create_geodesic, make_dashed_line
         
-        sphere_bundle = SphereGridBundle(radius=1.0)
+        sphere_bundle = SphereGrid(radius=1.0)
         
-        # Add to plotter (the bundle handles all child registration)
-        for name, child_obj in sphere_bundle:
-            plotter.add_scene_object(f"sphere_grid_{name}", obj=child_obj)
-        
-        # Or use a helper method in the plotter (recommended - see below)
-        plotter.add_scene_object_bundle("sphere_grid", sphere_bundle)
+        # Add to plotter
+        plotter.add_scene_object("sphere_grid", sphere_bundle)
     """
     
     def __init__(self, radius: float = 1.0):
@@ -721,3 +762,77 @@ class SphereGridBundle(SceneObjectBundle):
         self.add_child("geo_line2", SceneObject(geo_line2), color="black", **kw_markers)
         self.add_child("geo_line2_dashed", SceneObject(geo_line2_dashed), color="black", **kw_markers)
         self.add_child("sphere", SceneObject(sphere), color="lightgray", opacity=0.05)
+
+class VectorField(SceneObjectBundle):
+    """
+    A bundle representing a vector field using arrows.
+    Each arrow represents a vector at a specific position.
+    """
+
+    def __init__(
+            self, 
+            vectors: np.ndarray, 
+            origins: np.ndarray = None, 
+            scale: float = 1.0, 
+            **kwargs
+        ):
+        """
+        Create a vector field bundle.
+
+        Parameters
+        ----------
+        vectors : np.ndarray
+            An array of shape (N, 3) representing the vectors.
+        origins : np.ndarray, optional
+            An array of shape (N, 3) representing the origins of the vectors.
+            If None, all vectors originate from the origin (0, 0, 0).
+        scale : float
+            A scaling factor for the arrows.
+        **kwargs : dict
+            Additional styling arguments for the arrows.
+        """
+        super().__init__()
+        self.scale = scale
+
+        if origins is None:
+            origins = np.zeros_like(vectors)
+    
+        vectors = np.atleast_2d(vectors)
+        origins = np.atleast_2d(origins)
+
+        if vectors.shape != origins.shape:
+            raise ValueError("Vectors and origins must have the same shape.")
+
+        for i, (origin, vector) in enumerate(zip(origins, vectors)):
+            print(origin, vector)
+            arrow = pv.Arrow(start=origin, direction=vector, scale=self.scale)
+            self.add_child(f"arrow_{i}", SceneObject(mesh=arrow), **kwargs)
+
+    def update_vectors(self, vectors: np.ndarray, origins: np.ndarray = None):
+        """
+        Update the vectors and origins of the vector field.
+
+        Parameters
+        ----------
+        vectors : np.ndarray
+            An array of shape (N, 3) representing the new vectors.
+        origins : np.ndarray, optional
+            An array of shape (N, 3) representing the new origins of the vectors.
+            If None, the origins remain unchanged.
+        """
+        if origins is None:
+            origins = np.zeros_like(vectors)
+
+        vectors = np.atleast_2d(vectors)
+        origins = np.atleast_2d(origins)
+
+        if vectors.shape != origins.shape:
+            raise ValueError("Vectors and origins must have the same shape.")
+
+        for i, (origin, vector) in enumerate(zip(origins, vectors)):
+            arrow = pv.Arrow(start=origin, direction=vector, scale=self.scale)
+            child_name = f"arrow_{i}"
+            if child_name in self.children:
+                self.get_child(child_name).update_mesh(arrow)
+            else:
+                self.add_child(child_name, SceneObject(mesh=arrow))

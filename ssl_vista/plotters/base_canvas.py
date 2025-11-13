@@ -1,14 +1,14 @@
-__all__ = ["Plotter3DCanvas"]
+__all__ = ["BaseCanvasPlotter"]
 
 from os import name
 import numpy as np
 import pyvista as pv
 
-from ._base_plotters import BaseVisualPlotter
+from ._base_plotters import _BaseVisualPlotter
 from .pv_utils.canvas_grid import CanvasGrid
 from .pv_utils.scene_objects import Robot2D, Robot3D
 
-class BaseCanvasPlotter(BaseVisualPlotter):
+class BaseCanvasPlotter(_BaseVisualPlotter):
     """
     Generalized PyVista canvas for spatial visualization.
 
@@ -107,7 +107,7 @@ class BaseCanvasPlotter(BaseVisualPlotter):
         else:
             obj_robot = Robot3D(icon_type, visible=visible, **kwargs)
 
-        self.add_scene_object_bundle(name, obj_robot)
+        self.add_scene_object(name, obj_robot)
         self._robot_objs.append(obj_robot)
         return obj_robot
 

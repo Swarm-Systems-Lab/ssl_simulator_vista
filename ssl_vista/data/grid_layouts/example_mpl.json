@@ -10,13 +10,13 @@
       }
     },
     {
-      "type": "PlotterMpl",
+      "type": "BaseMplPlotter",
       "position": [0, 1],
       "module_path": "mpl_example.py",
       "class_name": "PlotterMplExample"
     },
     {
-      "type": "PlotterMpl",
+      "type": "BaseMplPlotter",
       "position": [1, 0],
       "module_path": "mpl_example.py",
       "class_name": "PlotterMplExample"

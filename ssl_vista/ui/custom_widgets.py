@@ -1,7 +1,3 @@
-__all__ = [
-    "CustomSlider",
-    ]
-
 from PyQt5.QtWidgets import QSlider
 
 class CustomSlider(QSlider):

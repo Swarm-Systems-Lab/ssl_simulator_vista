@@ -31,7 +31,10 @@ class Plotter2DCanvas(BaseCanvasPlotter):
         self.label_heading = label_heading
 
         self.robot_objs = []
-        
+
+    # ------------------------------------------------------------------
+    # INIT ARTISTS
+    # ------------------------------------------------------------------
     def init_artists(self, sim_data, sim_settings):
         """Initialize robots, trajectories, and vectors."""
         self._check_labels(sim_data)
@@ -62,7 +65,10 @@ class Plotter2DCanvas(BaseCanvasPlotter):
                 centroid = data_pos[0, i, :],
                 heading = data_heading[0, i] if data_heading is not None else None
             )
-        
+
+    # ------------------------------------------------------------------
+    # UPDATE ARTISTS
+    # ------------------------------------------------------------------
     def update_artists(self, sim_data, idx):
         """
         Update positions and orientations for all robots and update their 3D trajectory tails.

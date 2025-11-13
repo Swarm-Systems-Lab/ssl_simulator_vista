@@ -2,14 +2,10 @@ import typer
 from pathlib import Path
 
 from ssl_vista import CONFIG
-from ssl_vista.data import get_grid_layout_path, get_sample_path
-from ssl_vista.data import list_available_layouts, list_available_samples
+from ssl_vista.data import DataManager
 from .app import run_app
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
-
-# # Path to the folder containing default layouts
-# GRID_LAYOUTS_DIR = Path(__file__).parent / "grid_layouts"
 
 @app.command()
 def run(
@@ -72,7 +68,7 @@ def run(
 
     # --- Handle listing layouts and samples ---
     if list_layouts_flag:
-        layouts = list_available_layouts()
+        layouts = DataManager.list_available_layouts()
         if not layouts:
             typer.echo("No layouts found in grid_layouts folder.")
         else:
@@ -82,7 +78,7 @@ def run(
         raise typer.Exit()
 
     if list_data_flag:
-        samples = list_available_samples()
+        samples = DataManager.list_available_samples()
         if not samples:
             typer.echo("No samples found in samples folder.")
         else:
@@ -94,14 +90,14 @@ def run(
     # --- Handle layout argument ---
     layout_file = None
     if l is not None:
-        layout_file = get_grid_layout_path(l)
+        layout_file = DataManager.get_grid_layout_path(l)
 
     # --- Handle data argument ---
     data_file = None
 
     if data is not None:
         if not data.suffix == ".csv":
-            data_file = get_sample_path(data)
+            data_file = DataManager.get_sample_path(data)
         else:
             data_file = Path(data)
         if not data_file.exists():

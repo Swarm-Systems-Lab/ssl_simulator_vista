@@ -1,13 +1,13 @@
-__all__ = ["MainWindow"]
-
 import os
 import sys
 import numpy as np
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtCore import Qt, QTimer
 
-from ssl_vista import SimulationToolbar, load_grid_from_json, CONFIG
 from ssl_simulator import load_sim
+from ssl_vista import CONFIG
+from .grid import load_grid_from_json
+from .toolbars import SimulationToolbar
 
 # For Wayland compatibility (e.g. Ubuntu)
 os.environ['QT_QPA_PLATFORM'] = "xcb"

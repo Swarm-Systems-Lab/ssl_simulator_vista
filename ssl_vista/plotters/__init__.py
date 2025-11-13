@@ -16,6 +16,3 @@ for module_info in pkgutil.iter_modules(__path__):
         if obj.__module__ == full_module_name:
             globals()[name] = obj
             __all__.append(name)
-
-# Optional: print loaded plotters for debugging
-# print(f"[plotters] Loaded: {', '.join(__all__)}")
