@@ -2,7 +2,8 @@ __all__ = ["BaseMplPlotter"]
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from PyQt5 import QtCore, QtGui
 
 from ssl_vista import CONFIG
 from ._base_plotters import _BasePlotter
@@ -22,7 +23,7 @@ class BaseMplPlotter(_BasePlotter):
         self.context = context
         
         # -- To be defined by subclass !!
-        # e.g., {"main": {"positions":[0,0,1,1], "projection":"3d"}}
+        # e.g., {"main": {"position":[x0,y0,dx,dy], "projection":"3d"}}
         self.axes_config = {} 
         # ----------------------------
 
@@ -35,15 +36,7 @@ class BaseMplPlotter(_BasePlotter):
         self.canvas = FigureCanvas(self.fig)
         if parent:
             self.canvas.setParent(parent)
-        self.widget = self.canvas
-
-    def set_widget(self, widget):
-        """Set the Qt widget for layouts."""
-        self.widget = widget
-
-    def get_widget(self):
-        """Return the Qt widget for layouts."""
-        return self.widget
+        self.set_widget(self.canvas)
 
     def setup_scene(self):
         """Create axes and initialize artists."""
@@ -66,7 +59,7 @@ class BaseMplPlotter(_BasePlotter):
         self.fig.canvas.draw_count = 0  # reset draw count
 
         if CONFIG["DEBUG"]:
-            self.debug_artists()
+            self._debug_artists()
 
     def update_all_scene_objects(self, sim_data, idx):
         """Update all artists in the scene."""
@@ -84,7 +77,7 @@ class BaseMplPlotter(_BasePlotter):
         raise NotImplementedError
     
     # ---------------------------------------------------------------
-    # SETUP
+    # AXES SETUP AND UPDATE
     # ---------------------------------------------------------------
     def _setup_axes(self):
         """Create axes based on self.axes_config."""
@@ -107,12 +100,51 @@ class BaseMplPlotter(_BasePlotter):
 
             if CONFIG.get("DEBUG", False):
                 print(f"[DEBUG] Created axis '{key}' with rect={rect} and kwargs={cfg_copy}")
+    
+    def _update_axes(self, shift=[0,0], scale_factor=1.0):
+        """Update axes positions for panning and zooming."""
+        dx, dy = shift
+        for key, cfg in self.axes_config.items():
+            ax = self.axes[key]
+            pos = ax.get_position().bounds
+            new_pos = [pos[0]+dx, pos[1]+dy, pos[2]*scale_factor, pos[3]*scale_factor]
+            ax.set_position(new_pos)
+        self.fig.canvas.draw_idle()
+
+    def _print_position_axes(self):
+        """Print current axes positions for debugging."""
+        print("\nCurrent Axes Positions -----")
+        for key, ax in self.axes.items():
+            pos = ax.get_position().bounds
+            print(f"Axis '{key}': position={np.round(pos, 4)}")
+        print("-" * (len("Current Axes Positions -----") + 4))
+
+    # ---------------------------------------------------------------
+    # KEY EVENT HANDLING
+    # ---------------------------------------------------------------
+    def keyPressEvent(self, event: QtGui.QKeyEvent):
+        if event.key() == QtCore.Qt.Key_Plus:
+            self._update_axes(scale_factor=1.05)
+        elif event.key() == QtCore.Qt.Key_Minus:
+            self._update_axes(scale_factor=1/1.05)
+        elif event.key() == QtCore.Qt.Key_Left:
+            self._update_axes(shift=[-0.01, 0])
+        elif event.key() == QtCore.Qt.Key_Right:
+            self._update_axes(shift=[0.01, 0])
+        elif event.key() == QtCore.Qt.Key_Up:
+            self._update_axes(shift=[0, 0.01])
+        elif event.key() == QtCore.Qt.Key_Down:
+            self._update_axes(shift=[0, -0.01])
+        elif event.key() == QtCore.Qt.Key_I:
+            self._print_position_axes()
+        
+        event.accept()  # prevent further processing
 
     # ---------------------------------------------------------------
     # DEBUG UTILITIES
     # ---------------------------------------------------------------
 
-    def debug_artists(self):
+    def _debug_artists(self):
         """
         Print all artists in each axis with their key and type.
         Useful to inspect plot elements during development.

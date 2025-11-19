@@ -5,6 +5,8 @@ __all__ = [
     "StraightLine",
     "Vector",
     "Axes",
+    "Robot2D",
+    "Robot3D",
     "SphereGrid",
     "VectorField"
 ]
@@ -13,6 +15,9 @@ from calendar import c
 import numpy as np
 import pyvista as pv
 from typing import Union
+
+from ssl_vista import CONFIG
+GCONF = CONFIG["GRAPHICS"]
 
 from .factories import RobotFactory
 
@@ -480,27 +485,38 @@ class Icon3D(SceneObject):
         self.transform(translation=translation, R=R, center=original_centroid)
 
 class Line(SceneObject):
-    def __init__(self):
-        line = pv.PolyData()
-        line.points = np.empty((0, 3))
-        line.lines = np.empty((0,), dtype=int)
-        super().__init__(mesh=line)
+    def __init__(self, points=None, **kwargs):
+        if points is None:
+            line = pv.PolyData()
+            line.points = np.empty((0, 3))
+            line.lines = np.empty((0,), dtype=int)
+        else:
+            line = self._gen_line_from_points(points)
+        super().__init__(mesh=line, **kwargs)
     
     def set_points(self, new_points: np.ndarray):
-        n_pts = new_points.shape[0]
+        line_mesh = self._gen_line_from_points(new_points)
+        self.update_mesh(line_mesh)
+    
+    def _gen_line_from_points(self, points: np.ndarray) -> pv.PolyData:
+        n_pts = points.shape[0]
+        
+        # Ensure points are 3D by adding a zero z-coordinate if they are 2D
+        if points.shape[1] == 2:
+            points = np.hstack([points, np.zeros((n_pts, 1))])
         if n_pts > 1:
-            new_lines = np.hstack([[2, i, i + 1] for i in range(n_pts - 1)]).astype(np.int64)
+            lines = np.hstack([[2, i, i + 1] for i in range(n_pts - 1)]).astype(np.int64)
         else:
-            new_lines = np.empty((0,), dtype=np.int64)
+            lines = np.empty((0,), dtype=np.int64)
         line = pv.PolyData()
-        line.points = new_points
-        line.lines = new_lines
-        self.update_mesh(line)
+        line.points = points
+        line.lines = lines
+        return line
 
 class StraightLine(SceneObject):
-    def __init__(self, start: np.ndarray, end: np.ndarray):
+    def __init__(self, start: np.ndarray, end: np.ndarray, **kwargs):
         line = pv.Line(start, end)
-        super().__init__(mesh=line)
+        super().__init__(mesh=line, **kwargs)
 
 class Vector(SceneObject):
     """This class is a wrapper of the pv.Arrow object made for better integration"""
@@ -552,10 +568,8 @@ class Axes(SceneObjectBundle):
     def __init__(
             self, 
             origin = np.array([0.0, 0.0, 0.0]), 
-            visible: bool = True,
             size: float = 1.0,
             axis_colors = {"x": "red", "y": "green", "z": "blue"},
-            line_width: float = None,
             **kwargs
         ):
         """
@@ -566,15 +580,12 @@ class Axes(SceneObjectBundle):
         self.axis_colors = axis_colors
         self.size = size
 
-        if line_width is None:
-            self.line_width = 15 * size
-        else:
-            self.line_width = line_width
+        kwargs["line_width"] = kwargs.get("line_width", GCONF["AXES_LINE_WIDTH"] * size)
 
         for i, (label, color) in enumerate(self.axis_colors.items()):
             end = self.origin + self.size * np.eye(3)[i]
             line = StraightLine(self.origin, end)
-            self.add_child(label, line, color=color, line_width=self.line_width, visible=visible, **kwargs)
+            self.add_child(label, line, color=color, **kwargs)
 
     def transform_to(self, centroid: np.ndarray = None, R: np.ndarray = None):
         """
@@ -639,7 +650,7 @@ class Robot2D(SceneObjectBundle):
         self.traj = Line()
         
         # Add children with their styling
-        self.add_child("trajectory", self.traj, line_width=8*size, **kwargs)
+        self.add_child("trajectory", self.traj, line_width=GCONF["ROBOT_TRAJECTORY_SIZE"]*size, **kwargs)
         self.add_child("icon", self.icon, **kwargs)
     
     def transform_to(self, centroid: np.ndarray, heading: float = None):
@@ -688,7 +699,7 @@ class Robot3D(SceneObjectBundle):
 
         # Create trajectory line
         self.traj = Line()
-        self.add_child("trajectory", self.traj, line_width=8*size, **kwargs)
+        self.add_child("trajectory", self.traj, line_width=GCONF["ROBOT_TRAJECTORY_SIZE"]*size, **kwargs)
 
         # Create attitude axes
         if axes:
@@ -723,7 +734,14 @@ class SphereGrid(SceneObjectBundle):
         plotter.add_scene_object("sphere_grid", sphere_bundle)
     """
     
-    def __init__(self, radius: float = 1.0):
+    def __init__(
+            self, 
+            radius: float = 1.0, 
+            show_geodesics: bool = True, 
+            lw: float = 3.0,
+            lw_minor: float = 1.0,
+            **kwargs
+        ):
         """
         Create a sphere grid bundle with all components.
         
@@ -739,28 +757,35 @@ class SphereGrid(SceneObjectBundle):
         
         # Create all mesh components
         mesh1 = create_sphere_grid(radius=radius, lat_step=15, lon_step=15)
-        mesh2 = create_sphere_grid(radius=radius, lat_step=90, lon_step=None)
-        
-        geo_line1 = create_geodesic((-89.9, 0), (90, 0), radius=radius, n_points=40)
-        geo_line1_dashed = create_geodesic((-90.1, 0), (90, 0), radius=radius, n_points=60)
-        geo_line1_dashed = make_dashed_line(geo_line1_dashed, dash_length=3)
-        
-        geo_line2 = create_geodesic((-89.9, 90), (90, 90), radius=radius, n_points=40)
-        geo_line2_dashed = create_geodesic((-90.1, 90), (90, 90), radius=radius, n_points=60)
-        geo_line2_dashed = make_dashed_line(geo_line2_dashed, dash_length=2)
+
+        lat_mid = create_sphere_grid(radius=radius, lat_step=90, lon_step=None)
+        if show_geodesics:
+            geo_line1 = create_geodesic((-89.9, 0), (90, 0), radius=radius, n_points=40)
+            geo_line1_dashed = create_geodesic((-90.1, 0), (90, 0), radius=radius, n_points=60)
+            geo_line1_dashed = make_dashed_line(geo_line1_dashed, dash_length=3)
+            
+            geo_line2 = create_geodesic((-89.9, 90), (90, 90), radius=radius, n_points=40)
+            geo_line2_dashed = create_geodesic((-90.1, 90), (90, 90), radius=radius, n_points=60)
+            geo_line2_dashed = make_dashed_line(geo_line2_dashed, dash_length=2)
+        else:
+            lon_mid = create_sphere_grid(radius=radius, lat_step=None, lon_step=90)
         
         sphere = pv.Sphere(radius=radius, theta_resolution=30, phi_resolution=30)
         
         # Add children with their styling
-        kw_markers = {"line_width": 3}
-        kw_markers_main = {"line_width": 6}
+        kw_markers_main = {"line_width": lw, **kwargs}
+        kw_markers = {"line_width": lw_minor, **kwargs}
         
-        self.add_child("fine_grid", SceneObject(mesh1), color="grey")
-        self.add_child("axis_grid", SceneObject(mesh2), color="black", **kw_markers_main)
-        self.add_child("geo_line1", SceneObject(geo_line1), color="black", **kw_markers_main)
-        self.add_child("geo_line1_dashed", SceneObject(geo_line1_dashed), color="black", **kw_markers_main)
-        self.add_child("geo_line2", SceneObject(geo_line2), color="black", **kw_markers)
-        self.add_child("geo_line2_dashed", SceneObject(geo_line2_dashed), color="black", **kw_markers)
+        self.add_child("fine_grid", SceneObject(mesh1), color="grey", **kw_markers)
+        self.add_child("lat_mid", SceneObject(lat_mid), color="black", **kw_markers_main)
+        if show_geodesics:
+            self.add_child("geo_line1", SceneObject(geo_line1), color="black", **kw_markers_main)
+            self.add_child("geo_line1_dashed", SceneObject(geo_line1_dashed), color="black", **kw_markers_main)
+            self.add_child("geo_line2", SceneObject(geo_line2), color="black", **kw_markers_main)
+            self.add_child("geo_line2_dashed", SceneObject(geo_line2_dashed), color="black", **kw_markers_main)
+        else:
+            self.add_child("lon_mid", SceneObject(lon_mid), color="black", **kw_markers_main)
+
         self.add_child("sphere", SceneObject(sphere), color="lightgray", opacity=0.05)
 
 class VectorField(SceneObjectBundle):
@@ -804,7 +829,6 @@ class VectorField(SceneObjectBundle):
             raise ValueError("Vectors and origins must have the same shape.")
 
         for i, (origin, vector) in enumerate(zip(origins, vectors)):
-            print(origin, vector)
             arrow = pv.Arrow(start=origin, direction=vector, scale=self.scale)
             self.add_child(f"arrow_{i}", SceneObject(mesh=arrow), **kwargs)
 

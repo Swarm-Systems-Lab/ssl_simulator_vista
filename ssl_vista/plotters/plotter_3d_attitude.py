@@ -6,6 +6,7 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QToolBar, QPushButton, QLabel
 
 from ._base_plotters import _BaseVisualPlotter
+from .pv_utils.canvas_grid import CanvasGrid
 from .pv_utils.scene_objects import Axes, SphereGrid
 
 class Plotter3DAttitude(_BaseVisualPlotter):
@@ -42,18 +43,17 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         # - Static scene objects
         self.obj_axes = None
         self.obj_sphere = None
+        self.canvas_grid = CanvasGrid(self.pvqt, dimension=3, range=1, ticks=5)
 
         # - Connect to context signals
         self.context.robot_focus_changed.connect(self._rotate_axes)
-        self.pvqt.keyPressEvent = self.keyPressEvent
-
+        
     # ------------------------------------------------------------------
     # SCENE SETUP
     # ------------------------------------------------------------------
     def setup_scene(self):
         """Initialize the 3D attitude visualization scene."""
         self.pvqt.set_background("white")
-        self.pvqt.show_bounds(grid=True, location="outer", color="black", xtitle="X", ytitle="Y", ztitle="Z")
         self.pvqt.camera_position = "iso"
         self.pvqt.camera.Azimuth(-80)
         self.pvqt.camera.SetParallelProjection(False)
@@ -64,7 +64,10 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         self.obj_sphere = SphereGrid(radius=1.0)
         self.add_scene_object("axes", self.obj_axes)
         self.add_scene_object("sphere_grid", self.obj_sphere)
-        
+
+        # Add a 3D reference grid
+        self.canvas_grid.setup_grid()
+
         # Set a nice default view
         self.pvqt.reset_camera()
 

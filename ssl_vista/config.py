@@ -14,7 +14,16 @@ class Config(dict):
 
 # Initialize the configuration dictionary
 CONFIG = Config({
-    "DEBUG": os.getenv("SSL_VISTA_DEBUG", "False").lower() in ("true", "1", "yes"),
-    "DEBUG_INFO": os.getenv("SSL_VISTA_DEBUG_INFO", "False").lower() in ("true", "1", "yes"),
-    "WARNINGS": os.getenv("SSL_VISTA_WARNINGS", "True").lower() in ("true", "1", "yes"),
+    "DEBUG":      False,
+    "DEBUG_INFO": False,
+    "WARNINGS":   True,
+    "GRAPHICS": {
+        # Default robot trajectory parameters
+        "ROBOT_TRAJECTORY_SIZE": 5.0,
+        "ROBOT_TRAJECTORY_OPACITY": 0.6,
+        # Default size of the axes lines
+        "AXES_LINE_WIDTH": 6.0,
+        # Default size of the grid lines
+        "GRID_LINE_WIDTH": 0.8,
+    },
 })

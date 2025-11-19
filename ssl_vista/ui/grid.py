@@ -92,13 +92,6 @@ class SimulationGrid(QWidget):
             widget = plotter.get_widget() if hasattr(plotter, "get_widget") else plotter
             self._splitter_rows[i].addWidget(widget)
 
-        # for i in range(1):
-        #     for j in range(3):
-        #         label = QLabel(f"Plotter ({i}, {j})")
-        #         label.setStyleSheet(f"background-color: hsl({i*80 + j*40}, 70%, 60%);")
-        #         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        #         self._add_plotter(label, (i, j))
-
     def save_splitter_state(self):
         """Return byte array for restoring layout later."""
         return self._main_splitter.saveState()

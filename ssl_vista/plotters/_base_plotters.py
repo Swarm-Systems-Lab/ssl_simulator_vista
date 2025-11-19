@@ -19,6 +19,15 @@ class _BasePlotter:
     def set_widget(self, widget):
         """Set the Qt widget for layouts."""
         self.widget = widget
+        try:
+            # TODO: Set event handlers during initialization
+            self.widget.keyPressEvent = self.keyPressEvent
+            self.widget.keyReleaseEvent = self.keyReleaseEvent
+            self.widget.setFocusPolicy(QtCore.Qt.ClickFocus)
+            self.widget.setFocus()
+        except AttributeError:
+            if CONFIG["WARNINGS"]:
+                print(f"[WARNING] Unable to set key event handlers on widget of type {type(self.widget).__name__}")
 
     def get_widget(self):
         """Return the Qt widget for layouts."""
@@ -42,6 +51,17 @@ class _BasePlotter:
         """
         raise NotImplementedError("Subclasses must implement update_all_scene_objects()")
 
+    # ---------------------------------------------------------------
+    # KEY EVENT HANDLING (can be overridden)
+    # ---------------------------------------------------------------
+    def keyPressEvent(self, event: QtGui.QKeyEvent):
+        """Shadow all key presses to avoid default widget behavior."""
+        # print(f"{type(self.widget).__name__} - key pressed:", event.key())
+        event.accept()  # prevent further processing
+
+    def keyReleaseEvent(self, event: QtGui.QKeyEvent):
+        """Shadow all key releases to avoid default widget behavior."""
+        event.accept()
 
 class _BaseVisualPlotter(_BasePlotter):
     """
@@ -53,7 +73,7 @@ class _BaseVisualPlotter(_BasePlotter):
       - update_all_scene_objects(*args, **kwargs): update positions, orientations, etc.
     """
 
-    def __init__(self, parent=None, context=None, **kwargs):
+    def __init__(self, parent=None, context=None, widget=None,**kwargs):
         super().__init__(**kwargs)
         self.context = context
         self.pvqt = QtInteractor(parent=parent)
@@ -61,9 +81,6 @@ class _BaseVisualPlotter(_BasePlotter):
 
         # - Dictionary storing all scene objects
         self.scene_objects = {} # dict of SceneObject
-
-        # - Ensure proper focus so toolbars get keyboard input
-        # self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         # - Connect to context signals
         self.context.robot_focus_changed.connect(self._robot_focus_changed)
@@ -100,64 +117,8 @@ class _BaseVisualPlotter(_BasePlotter):
         return self.pvqt.reset_camera()
 
     # ---------------------------------------------------------------
-    # KEY EVENT HANDLING
-    # ---------------------------------------------------------------
-    #TODO: Better key event handling
-    def keyPressEvent(self, event: QtGui.QKeyEvent):
-        """Shadow all key presses to avoid default VTK behavior."""
-        key = event.key()
-        if key == QtCore.Qt.Key_R:
-            self.pvqt.reset_camera()
-        event.accept()  # Stop propagation to PyVista/VTK
-
-    def keyReleaseEvent(self, event: QtGui.QKeyEvent):
-        """Shadow all key releases."""
-        event.accept()
-
-    # ---------------------------------------------------------------
     # SCENE OBJECT MANAGEMENT
     # ---------------------------------------------------------------
-    # def add_scene_object(self, name: str, obj: SceneObject = None, mesh: pv.MatrixLike = None, **style):
-    #     """
-    #     Add a mesh to the scene and store it.
-        
-    #     Parameters
-    #     ----------
-    #     name : str
-    #         Unique name for the object.
-    #     mesh : pyvista.DataSet
-    #         The mesh to add.
-    #     obj : SceneObject
-    #         The scene object to add.
-    #     kwargs : dict
-    #         Additional arguments passed to `add_mesh`.
-        
-    #     Returns
-    #     -------
-    #     mesh
-    #     """
-    #     if name in self.scene_objects:
-    #         raise ValueError(f"Scene object '{name}' already exists.")
-
-    #     if mesh is None and obj is None:
-    #         raise ValueError("Either 'mesh' or 'obj' must be provided.")
-        
-    #     if mesh is not None and obj is not None and CONFIG["WARNINGS"]:
-    #         print("[WARNING] Both 'mesh' and 'obj' were provided. Only the 'obj' parameter will be used, and 'mesh' will be ignored.")
-
-    #     if obj is not None:
-    #         actor = self.pvqt.add_mesh(obj.mesh, **style)
-    #         obj.actor = actor
-    #         self.scene_objects[name] = obj
-    #     else:
-    #         # Extract "visible" if present in style
-    #         visible = style.pop("visible", True)
-
-    #         # Add the child object with its styling
-    #         actor = self.pvqt.add_mesh(mesh, **style)
-    #         actor.visibility = visible
-    #         self.scene_objects[name] = SceneObject(actor=actor, mesh=mesh)
-
     def add_scene_object(self, bundle_name: str, bundle: SceneObject | SceneObjectBundle):
         """
         Add a SceneObject or all children from a SceneObjectBundle to the scene.
