@@ -5,6 +5,7 @@ import pyvista as pv
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QToolBar, QPushButton, QLabel
 
+from ssl_simulator.math import check_and_parse_dimensions
 from ._base_plotters import _BaseVisualPlotter
 from .pv_utils.canvas_grid import CanvasGrid
 from .pv_utils.scene_objects import Axes, SphereGrid
@@ -72,7 +73,8 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         self.pvqt.reset_camera()
 
     def reset_scene(self, sim_data=None, sim_settings=None):
-        self.num_agents = sim_data[self.label_rot].shape[1]
+        data_rot = check_and_parse_dimensions(sim_data[self.label_rot], (None,None,3,3), "rotation matrix")
+        self.num_agents = data_rot.shape[1]
         self.print_scene_objects()
         self.pvqt.reset_camera()
 
@@ -93,8 +95,10 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         """
         if self.label_rot not in sim_data:
             raise KeyError(f"sim_data must contain '{self.label_rot}' key for attitude visualization")
-
-        self.current_R = sim_data[self.label_rot][idx, :, :, :]
+        
+        data_rot = check_and_parse_dimensions(sim_data[self.label_rot], (None,None,3,3), "rotation matrix")
+        self.num_agents = data_rot.shape[1]
+        self.current_R = data_rot[idx, :, :, :]
         self._rotate_axes()
         self.pvqt.render()
 

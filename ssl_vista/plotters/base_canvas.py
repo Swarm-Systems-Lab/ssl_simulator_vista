@@ -46,7 +46,47 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         self.canvas_grid = CanvasGrid(self.pvqt, dimension=dimension, range=canvas_grid_range, ticks=canvas_grid_ticks)
 
     # ---------------------------------------------------------------
-    # SETUP/RESET SCENE
+    # ARTISTS MANAGEMENT
+    # ---------------------------------------------------------------
+
+    def init_artists(self, sim_data, sim_settings):
+        """
+        Initialize the scene's artists. Must be implemented by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement `init_artists`.")
+
+    def update_artists(self, sim_data, idx):
+        """
+        Update the scene's artists. Must be implemented by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement `update_artists`.")
+
+    def _clear_artists(self):
+        """Remove all artists from the scene."""
+        for name, obj in self.scene_objects.items():
+            self.remove_scene_object(name)
+        self.scene_objects.clear()
+        
+    # ---------------------------------------------------------------
+    # CANVAS HELPER METHODS
+    # ---------------------------------------------------------------
+    def add_robot(self, name, icon_type, visible=True, **kwargs):
+        # - Create the robot mesh
+        if self.dimension == 2:
+            obj_robot = Robot2D(icon_type, visible=visible, **kwargs)
+        else:
+            obj_robot = Robot3D(icon_type, visible=visible, **kwargs)
+
+        self.add_scene_object(name, obj_robot)
+        self._robot_objs.append(obj_robot)
+        return obj_robot
+
+    def set_grid_centroid(self, centroid):
+        """Set the canvas grid centroid."""
+        self.canvas_grid.update_center(centroid)
+
+    # ---------------------------------------------------------------
+    # SETUP/RESET/UPDATE SCENE
     # ---------------------------------------------------------------
     def setup_scene(self, sim_data=None, sim_settings=None):
         """Set up the scene by initializing the grid and artists."""
@@ -71,50 +111,16 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
 
     def reset_scene(self, sim_data=None, sim_settings=None):
         """Reset the scene by clearing and reinitializing artists."""
-        self.clear_artists()
+        self._clear_artists()
         self.init_artists(sim_data, sim_settings)
         self.print_scene_objects()
         self.pvqt.reset_camera()
 
-    # ---------------------------------------------------------------
-    # ARTISTS MANAGEMENT
-    # ---------------------------------------------------------------
-    def init_artists(self, sim_data, sim_settings):
-        """
-        Initialize the scene's artists. Must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement `init_artists`.")
+    def update_all_scene_objects(self, sim_data, idx):
+        """Update all artists in the scene."""
+        self.update_artists(sim_data, idx)
+        self.pvqt.render()
 
-    def update_artists(self, sim_data, idx):
-        """
-        Update the scene's artists. Must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement `update_artists`.")
-
-    def clear_artists(self):
-        """Remove all artists from the scene."""
-        for name, obj in self.scene_objects.items():
-            self.remove_scene_object(name)
-        self.scene_objects.clear()
-
-    # ---------------------------------------------------------------
-    # CANVAS HELPER METHODS
-    # ---------------------------------------------------------------
-    def add_robot(self, name, icon_type, visible=True, **kwargs):
-        # - Create the robot mesh
-        if self.dimension == 2:
-            obj_robot = Robot2D(icon_type, visible=visible, **kwargs)
-        else:
-            obj_robot = Robot3D(icon_type, visible=visible, **kwargs)
-
-        self.add_scene_object(name, obj_robot)
-        self._robot_objs.append(obj_robot)
-        return obj_robot
-
-    def set_grid_centroid(self, centroid):
-        """Set the canvas grid centroid."""
-        self.canvas_grid.update_center(centroid)
-    
     # ---------------------------------------------------------------
     # SCENE OBJECTS MANAGEMENT
     # ---------------------------------------------------------------
@@ -136,11 +142,6 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         if isinstance(names, tuple):
             return all(name in self.scene_objects for name in names)
         return names in self.scene_objects
-    
-    def update_all_scene_objects(self, sim_data, idx):
-        """Update all artists in the scene."""
-        self.update_artists(sim_data, idx)
-        self.pvqt.render()
 
     # ---------------------------------------------------------------
     # CONTEXT SIGNALS CALLBACKS

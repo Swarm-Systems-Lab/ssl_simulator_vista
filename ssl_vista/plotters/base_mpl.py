@@ -16,7 +16,6 @@ class BaseMplPlotter(_BasePlotter):
         - define self.axes_config: dict specifying axes
         - implement init_artists(self)
         - implement update_artists(self, frame_data)
-        - override compute_frame(self, frame_idx) if needed for large logs
     """
 
     def __init__(self, parent=None, context=None, figsize=(8,6), dpi=100):
@@ -26,6 +25,9 @@ class BaseMplPlotter(_BasePlotter):
         # e.g., {"main": {"position":[x0,y0,dx,dy], "projection":"3d"}}
         self.axes_config = {} 
         # ----------------------------
+
+        self.line_configs = {}
+        self.artists = {}
 
         self.figsize, self.dpi = figsize, dpi
         self.fig = plt.figure(figsize=figsize, dpi=dpi)
@@ -38,6 +40,83 @@ class BaseMplPlotter(_BasePlotter):
             self.canvas.setParent(parent)
         self.set_widget(self.canvas)
 
+    # ---------------------------------------------------------------
+    # ABSTRACT METHODS (must be implemented)
+    # ---------------------------------------------------------------
+    def init_artists(self, sim_data, sim_settings):
+        """Initialize all plot elements. Must be implemented by subclass."""
+        raise NotImplementedError
+    
+    def update_artists(self, sim_data, idx):
+        """Update plot elements for a new frame. Must be implemented by subclass."""
+        raise NotImplementedError
+
+    # ---------------------------------------------------------------
+    # HELPER METHODS
+    # ---------------------------------------------------------------
+
+    def register_lines(self, axis, var, name=None, shape=None, units="", extract=None, **kw_style):
+        """
+        Register a group of lines to be plotted and updated.
+        Parameters:
+            name: str, key for this group of lines
+            axis: str, axis key in self.axes
+            var: str, variable name in sim_data
+            shape: int, number of lines (e.g. 3 for x/y/z)
+            units: str, units for axis label
+            extract: function or None, how to extract data from sim_data[var]
+        """
+        if name is None:
+            name = f"{var}_lines"
+        self.line_configs[name] = {
+            "axis": axis,
+            "var": var,
+            "shape": shape,
+            "units": units,
+            "extract": extract,
+            "style": kw_style,
+        }
+
+    def _init_lines_from_config(self, sim_data):
+        """
+        Initialize all registered lines and set axis labels/limits.
+        """
+        for name, cfg in self.line_configs.items():
+            ax = self.axes[cfg["axis"]]
+            data = sim_data[cfg["var"]]
+            if cfg["extract"]:
+                data = cfg["extract"](data)
+            if cfg["shape"] is None:
+                cfg["shape"] = data.shape[1] if len(data.shape) > 1 else 1
+
+            # Assume time axis is always present
+            time = sim_data["time"]
+            ax.set_xlim(time.min(), time.max())
+            ax.set_ylim(data.min()*1.1, data.max()*1.1)
+            ax.set_xlabel(r"$t$ [T]")
+            ax.set_ylabel(f"{cfg['var']} [{cfg['units']}]")
+            self.artists[name] = []
+            for i in range(cfg["shape"]):
+                style = {k: v[i] if isinstance(v, list) else v for k, v in cfg["style"].items()}
+                line, = ax.plot([], [], **style)
+                self.artists[name].append(line)
+            ax.legend()
+            
+    def _update_lines(self, sim_data, idx):
+        """
+        Update all registered lines with new data.
+        """
+        time = sim_data["time"]
+        for name, cfg in self.line_configs.items():
+            data = sim_data[cfg["var"]]
+            if cfg["extract"]:
+                data = cfg["extract"](data)
+            for i, line in enumerate(self.artists[name]):
+                line.set_data(time[:idx+1], data[:idx+1, i])
+
+    # ---------------------------------------------------------------
+    # SETUP/RESET/UPDATE SCENE
+    # ---------------------------------------------------------------
     def setup_scene(self):
         """Create axes and initialize artists."""
         if not self._initialized:
@@ -53,8 +132,10 @@ class BaseMplPlotter(_BasePlotter):
         # Clear all artists from the axes
         for ax in self.axes.values():
             ax.cla()
+            ax.grid(True)
 
         # Reinitialize artists
+        self._init_lines_from_config(sim_data)
         self.init_artists(sim_data, sim_settings)
         self.fig.canvas.draw_count = 0  # reset draw count
 
@@ -63,21 +144,13 @@ class BaseMplPlotter(_BasePlotter):
 
     def update_all_scene_objects(self, sim_data, idx):
         """Update all artists in the scene."""
+        self._update_lines(sim_data, idx)
         self.update_artists(sim_data, idx)
+        self.canvas.draw_idle()
+
     
     # ---------------------------------------------------------------
-    # ABSTRACT METHODS (must be implemented)
-    # ---------------------------------------------------------------
-    def init_artists(self, sim_data, sim_settings):
-        """Initialize all plot elements. Must be implemented by subclass."""
-        raise NotImplementedError
-    
-    def update_artists(self, sim_data, idx):
-        """Update plot elements for a new frame. Must be implemented by subclass."""
-        raise NotImplementedError
-    
-    # ---------------------------------------------------------------
-    # AXES SETUP AND UPDATE
+    # SETUP/UPDATE AXES 
     # ---------------------------------------------------------------
     def _setup_axes(self):
         """Create axes based on self.axes_config."""

@@ -485,13 +485,17 @@ class Icon3D(SceneObject):
         self.transform(translation=translation, R=R, center=original_centroid)
 
 class Line(SceneObject):
-    def __init__(self, points=None, **kwargs):
+    def __init__(self, points=None, dashed=False, dash_length=5, **kwargs):
+        self.dashed = dashed
+        self.dash_length = dash_length
+
         if points is None:
             line = pv.PolyData()
             line.points = np.empty((0, 3))
             line.lines = np.empty((0,), dtype=int)
         else:
             line = self._gen_line_from_points(points)
+            
         super().__init__(mesh=line, **kwargs)
     
     def set_points(self, new_points: np.ndarray):
@@ -504,14 +508,24 @@ class Line(SceneObject):
         # Ensure points are 3D by adding a zero z-coordinate if they are 2D
         if points.shape[1] == 2:
             points = np.hstack([points, np.zeros((n_pts, 1))])
-        if n_pts > 1:
-            lines = np.hstack([[2, i, i + 1] for i in range(n_pts - 1)]).astype(np.int64)
+        
+        if self.dashed:
+            from .meshes import make_dashed_line
+            # Create a dashed line
+            polyline = pv.PolyData()
+            polyline.points = points
+            polyline.lines = np.hstack([[2, i, i + 1] for i in range(n_pts - 1)]).astype(np.int64)
+            return make_dashed_line(polyline, dash_length=self.dash_length)
         else:
-            lines = np.empty((0,), dtype=np.int64)
-        line = pv.PolyData()
-        line.points = points
-        line.lines = lines
-        return line
+            # Create a solid line
+            if n_pts > 1:
+                lines = np.hstack([[2, i, i + 1] for i in range(n_pts - 1)]).astype(np.int64)
+            else:
+                lines = np.empty((0,), dtype=np.int64)
+            line = pv.PolyData()
+            line.points = points
+            line.lines = lines
+            return line
 
 class StraightLine(SceneObject):
     def __init__(self, start: np.ndarray, end: np.ndarray, **kwargs):
@@ -581,9 +595,10 @@ class Axes(SceneObjectBundle):
         self.size = size
 
         kwargs["line_width"] = kwargs.get("line_width", GCONF["AXES_LINE_WIDTH"] * size)
+        line_length = kwargs.get("line_length", GCONF["AXES_LINE_LENGTH"] * size)
 
         for i, (label, color) in enumerate(self.axis_colors.items()):
-            end = self.origin + self.size * np.eye(3)[i]
+            end = self.origin + line_length * np.eye(3)[i]
             line = StraightLine(self.origin, end)
             self.add_child(label, line, color=color, **kwargs)
 

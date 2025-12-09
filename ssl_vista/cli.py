@@ -5,7 +5,7 @@ from ssl_vista import CONFIG
 from ssl_vista.data import DataManager
 from .app import run_app
 
-app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
+app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, pretty_exceptions_show_locals=False)
 
 @app.command()
 def run(

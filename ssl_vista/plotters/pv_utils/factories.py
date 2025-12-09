@@ -2,10 +2,7 @@ __all__ = ["RobotFactory"]
 
 import numpy as np
 import pyvista as pv
-
-import numpy as np
-import pyvista as pv
-
+from ssl_vista.data import DataManager
 
 class RobotFactory:
     """
@@ -39,25 +36,28 @@ class RobotFactory:
             theta = np.linspace(0, 2 * np.pi, 50)
             verts = np.c_[np.cos(theta) * 0.25, np.sin(theta) * 0.25]
             faces = [len(verts)] + list(range(len(verts)))
+            mesh = pv.PolyData()
 
         elif robot_type == "unicycle":
             # Simple triangle pointing in +X direction
             verts = np.array([[0.5, 0], [0, 0.25], [0, -0.25]])
             faces = [3, 0, 1, 2]
+            mesh = pv.PolyData()
 
         elif robot_type == "car":
             # Simple rectangle pointing in +X direction
             verts = np.array([[-0.4, -0.2], [0.4, -0.2], [0.4, 0.2], [-0.4, 0.2]])
             faces = [4, 0, 1, 2, 3]
+            mesh = pv.PolyData()
 
         elif robot_type == "fixed_wing":
             verts = np.array([[0.5, 0], [-0.5, 0.25], [-0.5, -0.25], [0, 0]])
             faces = [4, 0, 1, 3, 2]
+            mesh = pv.PolyData()
 
         else:
             raise ValueError(f"Unknown 2D robot type '{robot_type}'")
 
-        mesh = pv.PolyData()
         mesh.points = np.hstack([verts, np.zeros((verts.shape[0], 1))])
         mesh.faces = np.hstack([faces])
         return mesh
@@ -101,6 +101,13 @@ class RobotFactory:
             for pos in prop_positions:
                 all_meshes.append(prop.copy().translate(pos))
             mesh = pv.MultiBlock(all_meshes).combine()
+
+        elif robot_type == "miniplank":
+            # Load MiniPlank.ply from data
+            file_path = DataManager.get_asset_path("MiniPlank")
+            mesh = pv.read(file_path)
+            mesh.rotate_y(-90, inplace=True)
+            mesh.rotate_x(-90, inplace=True)
 
         else:
             raise ValueError(f"Unknown 3D robot type '{robot_type}'")

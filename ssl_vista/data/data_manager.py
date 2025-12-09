@@ -39,7 +39,15 @@ class DataManager:
         Looks in package data under data/samples.
         """
         return DataManager._get_file_path("samples", sample_name, "csv")
-
+    
+    @staticmethod
+    def get_asset_path(asset_name: str) -> Path:
+        """
+        Return the path to an asset PLY file.
+        Looks in package data under data/assets.
+        """
+        return DataManager._get_file_path("assets", asset_name, "ply")
+    
     @staticmethod
     def _list_available_files(base_dir: str, extension: str) -> list[str]:
         """
@@ -67,3 +75,11 @@ class DataManager:
         Works in both editable mode and installed packages.
         """
         return DataManager._list_available_files("samples", "csv")
+
+    @staticmethod
+    def list_available_assets() -> list[str]:
+        """
+        Return a list of asset names available in data/assets (without the .ply extension).
+        Works in both editable mode and installed packages.
+        """
+        return DataManager._list_available_files("assets", "ply")
