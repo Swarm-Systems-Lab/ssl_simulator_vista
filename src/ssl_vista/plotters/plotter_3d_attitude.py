@@ -3,19 +3,20 @@ __all__ = ["Plotter3DAttitude"]
 import numpy as np
 import pyvista as pv
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QVBoxLayout, QWidget, QToolBar, QPushButton, QLabel
-
+from PyQt5.QtWidgets import QLabel, QPushButton, QToolBar, QVBoxLayout, QWidget
 from ssl_simulator.math import check_and_parse_dimensions
+
 from ._base_plotters import _BaseVisualPlotter
 from .pv_utils.canvas_grid import CanvasGrid
 from .pv_utils.scene_objects import Axes, SphereGrid
+
 
 class Plotter3DAttitude(_BaseVisualPlotter):
     """3D Attitude visualizer for a single robot's orientation matrix."""
 
     def __init__(self, parent=None, label_rot="robot.R", **kwargs):
         super().__init__(parent=parent, **kwargs)
-        
+
         # --- CUSTOM WIDGET SETUP ---
         custom_widget = QWidget(parent)
         layout = QVBoxLayout(custom_widget)
@@ -35,7 +36,7 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         # ---------------------------
 
         # - Simulation data info (updated dynamically when sim_data is provided)
-        self.num_agents = 1     
+        self.num_agents = 1
         self.current_R = np.eye(3)
 
         # - Simulation data labels
@@ -48,7 +49,7 @@ class Plotter3DAttitude(_BaseVisualPlotter):
 
         # - Connect to context signals
         self.context.robot_focus_changed.connect(self._rotate_axes)
-        
+
     # ------------------------------------------------------------------
     # SCENE SETUP
     # ------------------------------------------------------------------
@@ -73,7 +74,9 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         self.pvqt.reset_camera()
 
     def reset_scene(self, sim_data=None, sim_settings=None):
-        data_rot = check_and_parse_dimensions(sim_data[self.label_rot], (None,None,3,3), "rotation matrix")
+        data_rot = check_and_parse_dimensions(
+            sim_data[self.label_rot], (None, None, 3, 3), "rotation matrix"
+        )
         self.num_agents = data_rot.shape[1]
         self.print_scene_objects()
         self.pvqt.reset_camera()
@@ -94,9 +97,13 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         where T = time steps, N = number of robots.
         """
         if self.label_rot not in sim_data:
-            raise KeyError(f"sim_data must contain '{self.label_rot}' key for attitude visualization")
-        
-        data_rot = check_and_parse_dimensions(sim_data[self.label_rot], (None,None,3,3), "rotation matrix")
+            raise KeyError(
+                f"sim_data must contain '{self.label_rot}' key for attitude visualization"
+            )
+
+        data_rot = check_and_parse_dimensions(
+            sim_data[self.label_rot], (None, None, 3, 3), "rotation matrix"
+        )
         self.num_agents = data_rot.shape[1]
         self.current_R = data_rot[idx, :, :, :]
         self._rotate_axes()

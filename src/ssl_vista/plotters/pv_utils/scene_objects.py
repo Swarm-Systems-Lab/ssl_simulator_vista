@@ -1,27 +1,31 @@
 __all__ = [
+    "Axes",
     "Icon2D",
     "Icon3D",
     "Line",
-    "StraightLine",
-    "Vector",
-    "Axes",
     "Robot2D",
     "Robot3D",
     "SphereGrid",
-    "VectorField"
+    "StraightLine",
+    "Vector",
+    "VectorField",
 ]
 
 from calendar import c
+from typing import Optional, Union
+
 import numpy as np
 import pyvista as pv
-from typing import Union
 
 from ssl_vista import CONFIG
-GCONF = CONFIG["GRAPHICS"]
 
 from .factories import RobotFactory
 
+GCONF = CONFIG["GRAPHICS"]
+
+
 pv.global_theme.allow_empty_mesh = True
+
 
 class SceneObject:
     def __init__(self, mesh: pv.DataSet, actor: pv.Actor = None, size: float = 1.0, **style):
@@ -86,14 +90,14 @@ class SceneObject:
     def is_visible(self) -> bool:
         """Check if the object is currently visible."""
         return self.actor.visibility if self.actor is not None else False
-    
+
     def transform(
-            self, 
-            translation: np.ndarray = None, 
-            R: np.ndarray = None, 
-            scale_factor: float = None, 
-            center: np.ndarray = None
-        ):
+        self,
+        translation: np.ndarray = None,
+        R: np.ndarray = None,
+        scale_factor: Optional[float] = None,
+        center: np.ndarray = None,
+    ):
         """
         Apply translation, rotation, and scaling to the object.
 
@@ -118,11 +122,11 @@ class SceneObject:
         if translation is not None:
             pts += translation
         self.update_mesh_points(pts)
-    
+
     def translate(self, translation: np.ndarray):
         """
         Translate all children by the given vector.
-        
+
         Parameters
         ----------
         translation : np.ndarray
@@ -131,7 +135,7 @@ class SceneObject:
         if self.mesh is not None:
             new_points = self.mesh.points + translation
             self.update_mesh_points(new_points)
-    
+
     def rotate(self, R: np.ndarray, center: np.ndarray = None):
         """
         Rotate the object around a center point using the given rotation matrix.
@@ -149,7 +153,7 @@ class SceneObject:
             pts = self.mesh.points
             new_points = (R @ (pts - center).T).T + center
             self.update_mesh_points(new_points)
-    
+
     def scale(self, scale_factor: float, center: np.ndarray = None):
         """
         Scale the object uniformly from a center point.
@@ -191,27 +195,28 @@ class SceneObject:
             if self.actor is not None:
                 self.actor.mapper.Modified()
 
+
 class SceneObjectBundle:
     """
-    A composite container for multiple related SceneObjects that should be 
+    A composite container for multiple related SceneObjects that should be
     managed, transformed, or styled together.
-    
+
     This allows you to:
     - Group multiple meshes into a single logical unit
     - Apply transformations (translate, rotate, scale) to all children
     - Control visibility of the entire bundle
     - Access individual children by name for fine-grained control
-    
+
     Example:
         bundle = SceneObjectBundle()
         bundle.add_child("grid", SceneObject(mesh1), color="grey")
         bundle.add_child("sphere", SceneObject(mesh2), color="blue", opacity=0.5)
-        
+
         # Later, transform the entire bundle
         bundle.translate([1, 0, 0])
         bundle.set_visibility(False)
     """
-    
+
     def __init__(self):
         self.children = {}  # name -> {"obj": SceneObject, "style": dict}
         self._original_centroids = {}  # store original positions for transforms
@@ -227,7 +232,13 @@ class SceneObjectBundle:
 
     # ---------------------------------------------------------------
 
-    def add_child(self, name: str, obj: Union[SceneObject, 'SceneObjectBundle'], set_color=True, **style_kwargs):
+    def add_child(
+        self,
+        name: str,
+        obj: Union[SceneObject, "SceneObjectBundle"],
+        set_color=True,
+        **style_kwargs,
+    ):
         """
         Add a child SceneObject or SceneObjectBundle to the bundle.
 
@@ -243,11 +254,7 @@ class SceneObjectBundle:
         if name in self.children:
             raise ValueError(f"Child '{name}' already exists in bundle")
 
-        self.children[name] = {
-            "obj": obj,
-            "set_color": set_color,
-            "style": style_kwargs
-        }
+        self.children[name] = {"obj": obj, "set_color": set_color, "style": style_kwargs}
 
         # Store original centroid for transforms if the object is a SceneObject
         if isinstance(obj, SceneObject) and obj.mesh is not None and obj.mesh.n_points > 0:
@@ -258,25 +265,31 @@ class SceneObjectBundle:
         if name not in self.children:
             raise KeyError(f"Child '{name}' not found in bundle")
         return self.children[name]["obj"]
-    
+
     def set_visibility(self, visible: bool):
         """Set visibility for all children in the bundle."""
         for child_data in self.children.values():
             child_data["obj"].set_visibility(visible)
-    
+
     def set_color(self, color: pv.ColorLike):
         """Set color for all children in the bundle."""
         for child_data in self.children.values():
             if child_data["set_color"]:
                 child_data["obj"].set_color(color)
-    
+
     def reset_color(self):
         """Reset color for all children in the bundle."""
         for child_data in self.children.values():
             if child_data["set_color"]:
                 child_data["obj"].reset_color()
 
-    def transform(self, translation: np.ndarray = None, R: np.ndarray = None, scale_factor: float = None, center: np.ndarray = None):
+    def transform(
+        self,
+        translation: np.ndarray = None,
+        R: np.ndarray = None,
+        scale_factor: Optional[float] = None,
+        center: np.ndarray = None,
+    ):
         """
         Apply translation, rotation, and scaling to all children.
 
@@ -304,21 +317,21 @@ class SceneObjectBundle:
     def translate(self, translation: np.ndarray):
         """
         Translate all children by the given vector.
-        
+
         Parameters
         ----------
         translation : np.ndarray
             3D translation vector [dx, dy, dz]
         """
         translation = np.asarray(translation, dtype=float)
-        for name, child_data in self.children.items():
+        for _name, child_data in self.children.items():
             obj = child_data["obj"]
             obj.translate(translation)
-    
+
     def rotate(self, R: np.ndarray, center: np.ndarray = None):
         """
         Rotate all children around a center point.
-        
+
         Parameters
         ----------
         R : np.ndarray
@@ -329,14 +342,14 @@ class SceneObjectBundle:
         if center is None:
             # Compute bundle center from all meshes
             center = self._compute_bundle_center()
-        
+
         R = np.asarray(R, dtype=float)
         center = np.asarray(center, dtype=float)
-        
+
         for child_data in self.children.values():
             obj = child_data["obj"]
             obj.rotate(R, center)
-    
+
     def scale(self, scale_factor: float, center: np.ndarray = None):
         """
         Scale all children uniformly from a center point.
@@ -351,9 +364,9 @@ class SceneObjectBundle:
         if center is None:
             # Compute bundle center from all meshes
             center = self._compute_bundle_center()
-        
+
         center = np.asarray(center, dtype=float)
-        
+
         for child_data in self.children.values():
             obj = child_data["obj"]
             obj.scale(scale_factor, center)
@@ -373,30 +386,32 @@ class SceneObjectBundle:
             return np.vstack(all_points).mean(axis=0)
         else:
             return np.array([0.0, 0.0, 0.0])
-        
+
     def __len__(self):
         return len(self.children)
-    
+
     def __iter__(self):
         """Iterate over (name, SceneObject) pairs."""
         for name, child_data in self.children.items():
             yield name, child_data["obj"]
-    
-    def __getitem__(self, name: str) -> Union[SceneObject, 'SceneObjectBundle']:
+
+    def __getitem__(self, name: str) -> Union[SceneObject, "SceneObjectBundle"]:
         """Allow indexing to retrieve a child object by name."""
         return self.get_child(name)
+
 
 # ------------------------------------------------------------------
 # SPECIFIC SCENE OBJECTS
 # ------------------------------------------------------------------
+
 
 class Icon2D(SceneObject):
     def __init__(self, robot_type: str, **kwargs):
         self.robot_factory = RobotFactory(dimension=2)
         mesh_robot = self.robot_factory.create(robot_type)
         super().__init__(mesh=mesh_robot, **kwargs)
-    
-    def transform_to(self, centroid: np.ndarray = None,  heading: float = None):
+
+    def transform_to(self, centroid: np.ndarray = None, heading: Optional[float] = None):
         """
         Transforms the object to a new position and orientation based on the specified
         centroid and heading. The transformation involves a translation and an optional
@@ -427,14 +442,17 @@ class Icon2D(SceneObject):
         if heading is None:
             R = None
         else:
-            R = np.array([
-                [np.cos(heading), -np.sin(heading), 0],
-                [np.sin(heading), np.cos(heading), 0],
-                [0, 0, 1]
-            ])
+            R = np.array(
+                [
+                    [np.cos(heading), -np.sin(heading), 0],
+                    [np.sin(heading), np.cos(heading), 0],
+                    [0, 0, 1],
+                ]
+            )
 
         # Apply transform (rotation R around orig_centroid then translation)
         self.transform(translation=translation, R=R, center=self.default_centroid)
+
 
 class Icon3D(SceneObject):
     def __init__(self, robot_type: str, **kwargs):
@@ -455,10 +473,10 @@ class Icon3D(SceneObject):
         and an optional rotation around the object's default centroid.
 
         Args:
-            centroid (np.ndarray, optional): A 1D array-like object of shape (3,) 
-            representing the target centroid (x, y, z). If None, no translation 
+            centroid (np.ndarray, optional): A 1D array-like object of shape (3,)
+            representing the target centroid (x, y, z). If None, no translation
             is applied.
-            R (np.ndarray, optional): A 3x3 rotation matrix representing the target 
+            R (np.ndarray, optional): A 3x3 rotation matrix representing the target
             orientation. If None, no rotation is applied.
 
         Behavior:
@@ -484,6 +502,7 @@ class Icon3D(SceneObject):
         # Apply transform (rotation R around orig_centroid then translation)
         self.transform(translation=translation, R=R, center=original_centroid)
 
+
 class Line(SceneObject):
     def __init__(self, points=None, dashed=False, dash_length=5, **kwargs):
         self.dashed = dashed
@@ -495,22 +514,23 @@ class Line(SceneObject):
             line.lines = np.empty((0,), dtype=int)
         else:
             line = self._gen_line_from_points(points)
-            
+
         super().__init__(mesh=line, **kwargs)
-    
+
     def set_points(self, new_points: np.ndarray):
         line_mesh = self._gen_line_from_points(new_points)
         self.update_mesh(line_mesh)
-    
+
     def _gen_line_from_points(self, points: np.ndarray) -> pv.PolyData:
         n_pts = points.shape[0]
-        
+
         # Ensure points are 3D by adding a zero z-coordinate if they are 2D
         if points.shape[1] == 2:
             points = np.hstack([points, np.zeros((n_pts, 1))])
-        
+
         if self.dashed:
             from .meshes import make_dashed_line
+
             # Create a dashed line
             polyline = pv.PolyData()
             polyline.points = points
@@ -527,10 +547,12 @@ class Line(SceneObject):
             line.lines = lines
             return line
 
+
 class StraightLine(SceneObject):
     def __init__(self, start: np.ndarray, end: np.ndarray, **kwargs):
         line = pv.Line(start, end)
         super().__init__(mesh=line, **kwargs)
+
 
 class Vector(SceneObject):
     """This class is a wrapper of the pv.Arrow object made for better integration"""
@@ -570,9 +592,11 @@ class Vector(SceneObject):
         arrow = pv.Arrow(start=origin, direction=direction, scale=self.scale)
         self.update_mesh(arrow)
 
+
 # ------------------------------------------------------------------
 # COMPOSITE/BUNDLE SCENE OBJECTS
 # ------------------------------------------------------------------
+
 
 class Axes(SceneObjectBundle):
     """
@@ -580,15 +604,19 @@ class Axes(SceneObjectBundle):
     """
 
     def __init__(
-            self, 
-            origin = np.array([0.0, 0.0, 0.0]), 
-            size: float = 1.0,
-            axis_colors = {"x": "red", "y": "green", "z": "blue"},
-            **kwargs
-        ):
+        self,
+        origin=None,
+        size: float = 1.0,
+        axis_colors=None,
+        **kwargs,
+    ):
         """
         Create the initial x, y, z attitude vectors.
         """
+        if origin is None:
+            origin = np.array([0.0, 0.0, 0.0])
+        if axis_colors is None:
+            axis_colors = {"x": "red", "y": "green", "z": "blue"}
         super().__init__()
         self.origin = origin
         self.axis_colors = axis_colors
@@ -616,9 +644,9 @@ class Axes(SceneObjectBundle):
         if R is None:
             for label in ["x", "y", "z"]:
                 obj = self.get_child(label)
-                obj.transform(translation = (origin - self.origin))
+                obj.transform(translation=(origin - self.origin))
         else:
-            vectors = origin[:,None] + R * self.size
+            vectors = origin[:, None] + R * self.size
             axes = {"x": vectors[:, 0], "y": vectors[:, 1], "z": vectors[:, 2]}
 
             for label, vec in axes.items():
@@ -626,27 +654,23 @@ class Axes(SceneObjectBundle):
                 new_pts = np.array([origin, vec])
                 obj.update_mesh_points(new_pts)
 
+
 class Robot2D(SceneObjectBundle):
     """
     A pre-configured bundle for a 3D robot mesh with attitude axes.
     This bundle contains:
         - The robot mesh (Icon3D)
         - The robot trajectory (Line)
-    
+
     Example usage:
         robot_bundle = Robot2D(robot_type="unicycle", color="blue")
         plotter.add_scene_object("robot", robot_bundle)
     """
-    
-    def __init__(
-            self, 
-            robot_type: str = "default", 
-            size: float = 1.0,
-            **kwargs
-        ):
+
+    def __init__(self, robot_type: str = "default", size: float = 1.0, **kwargs):
         """
         Create a robot bundle with a 3D icon and attitude axes.
-        
+
         Parameters
         ----------
         robot_type : str
@@ -657,22 +681,25 @@ class Robot2D(SceneObjectBundle):
             Whether to include attitude axes.
         """
         super().__init__()
-        
+
         # Create robot icon
         self.icon = Icon2D(robot_type=robot_type, size=size)
 
         # Create trajectory line
         self.traj = Line()
-        
+
         # Add children with their styling
-        self.add_child("trajectory", self.traj, line_width=GCONF["ROBOT_TRAJECTORY_SIZE"]*size, **kwargs)
+        self.add_child(
+            "trajectory", self.traj, line_width=GCONF["ROBOT_TRAJECTORY_SIZE"] * size, **kwargs
+        )
         self.add_child("icon", self.icon, **kwargs)
-    
-    def transform_to(self, centroid: np.ndarray, heading: float = None):
+
+    def transform_to(self, centroid: np.ndarray, heading: Optional[float] = None):
         self.icon.transform_to(centroid, heading)
-    
+
     def set_traj_points(self, new_points: np.ndarray):
         self.traj.set_points(new_points)
+
 
 class Robot3D(SceneObjectBundle):
     """
@@ -681,21 +708,16 @@ class Robot3D(SceneObjectBundle):
         - The robot mesh (Icon3D)
         - The robot trajectory (Line)
         - The attitude axes (Axes)
-    
+
     Example usage:
         robot_bundle = Robot3D(robot_type="unicycle", color="blue")
         plotter.add_scene_object("robot", robot_bundle)
     """
-    
-    def __init__(self, 
-            robot_type: str = "default", 
-            axes: bool = True,
-            size: float = 1.0,
-            **kwargs
-        ):
+
+    def __init__(self, robot_type: str = "default", axes: bool = True, size: float = 1.0, **kwargs):
         """
         Create a robot bundle with a 3D icon and attitude axes.
-        
+
         Parameters
         ----------
         robot_type : str
@@ -706,7 +728,7 @@ class Robot3D(SceneObjectBundle):
             Whether to include attitude axes.
         """
         super().__init__()
-        
+
         # Create robot icon
         self.icon = Icon3D(robot_type=robot_type, size=size)
         # self.icon.set_color(color)
@@ -714,7 +736,9 @@ class Robot3D(SceneObjectBundle):
 
         # Create trajectory line
         self.traj = Line()
-        self.add_child("trajectory", self.traj, line_width=GCONF["ROBOT_TRAJECTORY_SIZE"]*size, **kwargs)
+        self.add_child(
+            "trajectory", self.traj, line_width=GCONF["ROBOT_TRAJECTORY_SIZE"] * size, **kwargs
+        )
 
         # Create attitude axes
         if axes:
@@ -722,54 +746,55 @@ class Robot3D(SceneObjectBundle):
             self.add_child("axes", self.axes, set_color=False, **kwargs)
         else:
             self.axes = None
-        
+
     def transform_to(self, centroid: np.ndarray, R: np.ndarray = None):
         self.icon.transform_to(centroid, R)
         if self.axes is not None:
             self.axes.transform_to(centroid, R)
-    
+
     def set_traj_points(self, new_points: np.ndarray):
         self.traj.set_points(new_points)
-    
+
+
 class SphereGrid(SceneObjectBundle):
     """
-    A pre-configured bundle for the sphere grid visualization used in 
+    A pre-configured bundle for the sphere grid visualization used in
     the 3D attitude plotter. This creates a composite object with:
     - Fine grid lines (latitude/longitude)
     - Bold axis lines (at lat=90)
     - Geodesic lines (solid and dashed)
     - Optional transparent sphere
-    
+
     Example usage:
         from .pv_utils.meshes import create_sphere_grid, create_geodesic, make_dashed_line
-        
+
         sphere_bundle = SphereGrid(radius=1.0)
-        
+
         # Add to plotter
         plotter.add_scene_object("sphere_grid", sphere_bundle)
     """
-    
+
     def __init__(
-            self, 
-            radius: float = 1.0, 
-            show_geodesics: bool = True, 
-            lw: float = 3.0,
-            lw_minor: float = 1.0,
-            **kwargs
-        ):
+        self,
+        radius: float = 1.0,
+        show_geodesics: bool = True,
+        lw: float = 3.0,
+        lw_minor: float = 1.0,
+        **kwargs,
+    ):
         """
         Create a sphere grid bundle with all components.
-        
+
         Parameters
         ----------
         radius : float
             Radius of the sphere
         """
         super().__init__()
-        
+
         # Import here to avoid circular dependency
-        from .meshes import create_sphere_grid, create_geodesic, make_dashed_line
-        
+        from .meshes import create_geodesic, create_sphere_grid, make_dashed_line
+
         # Create all mesh components
         mesh1 = create_sphere_grid(radius=radius, lat_step=15, lon_step=15)
 
@@ -778,30 +803,35 @@ class SphereGrid(SceneObjectBundle):
             geo_line1 = create_geodesic((-89.9, 0), (90, 0), radius=radius, n_points=40)
             geo_line1_dashed = create_geodesic((-90.1, 0), (90, 0), radius=radius, n_points=60)
             geo_line1_dashed = make_dashed_line(geo_line1_dashed, dash_length=3)
-            
+
             geo_line2 = create_geodesic((-89.9, 90), (90, 90), radius=radius, n_points=40)
             geo_line2_dashed = create_geodesic((-90.1, 90), (90, 90), radius=radius, n_points=60)
             geo_line2_dashed = make_dashed_line(geo_line2_dashed, dash_length=2)
         else:
             lon_mid = create_sphere_grid(radius=radius, lat_step=None, lon_step=90)
-        
+
         sphere = pv.Sphere(radius=radius, theta_resolution=30, phi_resolution=30)
-        
+
         # Add children with their styling
         kw_markers_main = {"line_width": lw, **kwargs}
         kw_markers = {"line_width": lw_minor, **kwargs}
-        
+
         self.add_child("fine_grid", SceneObject(mesh1), color="grey", **kw_markers)
         self.add_child("lat_mid", SceneObject(lat_mid), color="black", **kw_markers_main)
         if show_geodesics:
             self.add_child("geo_line1", SceneObject(geo_line1), color="black", **kw_markers_main)
-            self.add_child("geo_line1_dashed", SceneObject(geo_line1_dashed), color="black", **kw_markers_main)
+            self.add_child(
+                "geo_line1_dashed", SceneObject(geo_line1_dashed), color="black", **kw_markers_main
+            )
             self.add_child("geo_line2", SceneObject(geo_line2), color="black", **kw_markers_main)
-            self.add_child("geo_line2_dashed", SceneObject(geo_line2_dashed), color="black", **kw_markers_main)
+            self.add_child(
+                "geo_line2_dashed", SceneObject(geo_line2_dashed), color="black", **kw_markers_main
+            )
         else:
             self.add_child("lon_mid", SceneObject(lon_mid), color="black", **kw_markers_main)
 
         self.add_child("sphere", SceneObject(sphere), color="lightgray", opacity=0.05)
+
 
 class VectorField(SceneObjectBundle):
     """
@@ -810,12 +840,8 @@ class VectorField(SceneObjectBundle):
     """
 
     def __init__(
-            self, 
-            vectors: np.ndarray, 
-            origins: np.ndarray = None, 
-            scale: float = 1.0, 
-            **kwargs
-        ):
+        self, vectors: np.ndarray, origins: np.ndarray = None, scale: float = 1.0, **kwargs
+    ):
         """
         Create a vector field bundle.
 
@@ -836,7 +862,7 @@ class VectorField(SceneObjectBundle):
 
         if origins is None:
             origins = np.zeros_like(vectors)
-    
+
         vectors = np.atleast_2d(vectors)
         origins = np.atleast_2d(origins)
 

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import ssl_vista
 
+
 class DataManager:
     """A class to manage data files and layouts in the SSL Visualization Tool."""
 
@@ -22,7 +23,9 @@ class DataManager:
                 if candidate.exists():
                     return candidate
                 else:
-                    raise FileNotFoundError(f"File '{file_name}.{extension}' not found in {base_dir}.")
+                    raise FileNotFoundError(
+                        f"File '{file_name}.{extension}' not found in {base_dir}."
+                    )
 
     @staticmethod
     def get_grid_layout_path(layout_name: str) -> Path:
@@ -39,7 +42,7 @@ class DataManager:
         Looks in package data under data/samples.
         """
         return DataManager._get_file_path("samples", sample_name, "csv")
-    
+
     @staticmethod
     def get_asset_path(asset_name: str) -> Path:
         """
@@ -47,7 +50,7 @@ class DataManager:
         Looks in package data under data/assets.
         """
         return DataManager._get_file_path("assets", asset_name, "ply")
-    
+
     @staticmethod
     def _list_available_files(base_dir: str, extension: str) -> list[str]:
         """

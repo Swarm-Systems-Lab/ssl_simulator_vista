@@ -1,19 +1,21 @@
 __all__ = ["CanvasGrid"]
 
 from os import minor
+
 import numpy as np
-from pyparsing import line
 import pyvista as pv
+from pyparsing import line
+
 
 class CanvasGrid:
-    def __init__(self, pv_plotter, dimension=2, range=None, ticks=None, **kw_box_style):
+    def __init__(self, pv_plotter, dimension=2, grid_range=None, ticks=None, **kw_box_style):
         """
         Initializes the CanvasGrid object.
 
         Args:
             pv_plotter (pyvista.Plotter): The PyVista plotter instance.
             dimension (int): The dimensionality of the grid (2 or 3).
-            range (tuple): The range of the grid in each dimension.
+            grid_range (tuple): The range of the grid in each dimension.
             ticks (tuple): The number of ticks in each dimension.
         """
         self.pv_plotter = pv_plotter
@@ -53,9 +55,7 @@ class CanvasGrid:
 
         # Configure the bounds and axes
         self.pv_plotter.show_bounds(
-            location="all",
-            n_xlabels=ticks_x, n_ylabels=ticks_y,
-            **self.kw_style
+            location="all", n_xlabels=ticks_x, n_ylabels=ticks_y, **self.kw_style
         )
 
     def _create_3d(self):
@@ -72,8 +72,10 @@ class CanvasGrid:
         # Configure the bounds and axes
         self.pv_plotter.show_bounds(
             location="outer",
-            n_xlabels=ticks_x, n_ylabels=ticks_y, n_zlabels=ticks_z,
-            **self.kw_style
+            n_xlabels=ticks_x,
+            n_ylabels=ticks_y,
+            n_zlabels=ticks_z,
+            **self.kw_style,
         )
 
     def setup_grid(self):
@@ -106,4 +108,3 @@ class CanvasGrid:
 
         # Update the bounds and axes to reflect the new center
         self.pv_plotter.update_bounds_axes()
-

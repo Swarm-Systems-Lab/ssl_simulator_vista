@@ -1,12 +1,12 @@
 __all__ = ["BaseCanvasPlotter"]
 
-from os import name
 import numpy as np
 import pyvista as pv
 
 from ._base_plotters import _BaseVisualPlotter
 from .pv_utils.canvas_grid import CanvasGrid
 from .pv_utils.scene_objects import Robot2D, Robot3D
+
 
 class BaseCanvasPlotter(_BaseVisualPlotter):
     """
@@ -19,15 +19,15 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
 
     def __init__(
         self,
-        dimension, # 2 or 3
+        dimension,  # 2 or 3
         parent=None,
         sim_data_labels=None,
         canvas_grid_range=None,
         canvas_grid_ticks=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(parent=parent, **kwargs)
-        
+
         self.dimension = dimension
         self.sim_data_labels = sim_data_labels or {}
         self._robot_objs = []
@@ -43,7 +43,9 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         if canvas_grid_ticks is None:
             canvas_grid_ticks = [11, 11] if dimension == 2 else [11, 11, 11]
 
-        self.canvas_grid = CanvasGrid(self.pvqt, dimension=dimension, range=canvas_grid_range, ticks=canvas_grid_ticks)
+        self.canvas_grid = CanvasGrid(
+            self.pvqt, dimension=dimension, range=canvas_grid_range, ticks=canvas_grid_ticks
+        )
 
     # ---------------------------------------------------------------
     # ARTISTS MANAGEMENT
@@ -63,21 +65,21 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
 
     def _clear_artists(self):
         """Remove all artists from the scene."""
-        for name, obj in self.scene_objects.items():
-            self.remove_scene_object(name)
+        for obj_name, _obj in self.scene_objects.items():
+            self.remove_scene_object(obj_name)
         self.scene_objects.clear()
-        
+
     # ---------------------------------------------------------------
     # CANVAS HELPER METHODS
     # ---------------------------------------------------------------
-    def add_robot(self, name, icon_type, visible=True, **kwargs):
+    def add_robot(self, robot_name, icon_type, visible=True, **kwargs):
         # - Create the robot mesh
         if self.dimension == 2:
             obj_robot = Robot2D(icon_type, visible=visible, **kwargs)
         else:
             obj_robot = Robot3D(icon_type, visible=visible, **kwargs)
 
-        self.add_scene_object(name, obj_robot)
+        self.add_scene_object(robot_name, obj_robot)
         self._robot_objs.append(obj_robot)
         return obj_robot
 
@@ -124,16 +126,16 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
     # ---------------------------------------------------------------
     # SCENE OBJECTS MANAGEMENT
     # ---------------------------------------------------------------
-    def get_scene_object(self, name):
+    def get_scene_object(self, obj_name):
         """Retrieve a scene object by name."""
-        return self.scene_objects.get(name, None)
-    
+        return self.scene_objects.get(obj_name, None)
+
     def get_robot_objects(self, robot_name):
         """Retrieve the robot and its trajectory objects."""
         obj = self.get_scene_object(robot_name)
         if obj is None:
             return None, None
-        return self.get_scene_object(robot_name), self.get_scene_object(robot_name+".traj")
+        return self.get_scene_object(robot_name), self.get_scene_object(robot_name + ".traj")
 
     def in_scene(self, names):
         """Check if one or more scene objects exist."""

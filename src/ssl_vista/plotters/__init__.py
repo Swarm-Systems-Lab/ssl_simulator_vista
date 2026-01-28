@@ -1,6 +1,6 @@
 import importlib
-import pkgutil
 import inspect
+import pkgutil
 
 # Automatically import all modules inside the "plotters" package
 __all__ = []

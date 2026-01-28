@@ -1,10 +1,11 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from ssl_simulator.visualization import set_paper_parameters
 
 from ssl_vista import BaseMplPlotter
 
-from ssl_simulator.visualization import set_paper_parameters
 set_paper_parameters(fontsize=24)
+
 
 class PlotterMplExample(BaseMplPlotter):
     """
@@ -13,7 +14,7 @@ class PlotterMplExample(BaseMplPlotter):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.axes_config = {"main": {"position": [0.1,0.1,0.8,0.8]}}
+        self.axes_config = {"main": {"position": [0.1, 0.1, 0.8, 0.8]}}
 
     def init_artists(self, sim_data, sim_settings):
         self.artists = {}
@@ -32,7 +33,7 @@ class PlotterMplExample(BaseMplPlotter):
 
         self.artists["lines"] = []
         for i in range(self.n_robots):
-            line, = ax.plot([], [], color="royalblue", lw=2, label=f"Robot {i}")
+            (line,) = ax.plot([], [], color="royalblue", lw=2, label=f"Robot {i}")
             self.artists["lines"].append(line)
 
     def update_artists(self, sim_data, idx):
@@ -41,7 +42,7 @@ class PlotterMplExample(BaseMplPlotter):
         data_theta = sim_data["robot.theta"]
 
         for i, line in enumerate(self.artists["lines"]):
-            line.set_data(time[:idx+1], data_theta[:idx+1, i])
+            line.set_data(time[: idx + 1], data_theta[: idx + 1, i])
 
         # self.axes["main"].relim()
         # self.axes["main"].autoscale_view()

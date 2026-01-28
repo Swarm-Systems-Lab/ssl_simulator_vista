@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import QToolBar, QAction, QLabel, QFileDialog, QMessageBox
-from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from PyQt5.QtCore import QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import QAction, QFileDialog, QLabel, QMessageBox, QToolBar
 
 from .custom_widgets import CustomSlider
+
 
 class SimulationToolbar(QToolBar):
     """Toolbar for simulation controls."""
@@ -70,10 +71,7 @@ class SimulationToolbar(QToolBar):
     def _on_load_file(self):
         """Prompt user to load a simulation data CSV file."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Simulation File",
-            "",
-            "CSV Files (*.csv);;All Files (*)"
+            self, "Select Simulation File", "", "CSV Files (*.csv);;All Files (*)"
         )
         if not file_path:
             return
@@ -83,14 +81,11 @@ class SimulationToolbar(QToolBar):
 
         # QMessageBox.information(self, "File Loaded",
         #                         f"Simulation file selected:\n{file_path}")
-             
+
     def _on_load_grid_layout(self):
         """Prompt the user to select a grid layout file."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Grid Layout File",
-            "",
-            "Layout Files (*.json *.yaml *.yml);;All Files (*)"
+            self, "Select Grid Layout File", "", "Layout Files (*.json *.yaml *.yml);;All Files (*)"
         )
         if not file_path:
             return

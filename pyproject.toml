@@ -1,16 +1,17 @@
+[build-system]
+requires = ["hatchling", "setuptools>=77.0.0"]
+build-backend = "hatchling.build"
+
 [project]
 name = "ssl_vista"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A Qt-based visualization app"
 readme = "README.md"
 requires-python = ">=3.8"
-license = "GPL-3.0-or-later"
-authors = [
-    { name="Jesús Bautista Villar", email="jesbauti20@gmail.com" }
-]
-
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Jesús Bautista Villar", email = "jesbauti20@gmail.com" }]
 dependencies = [
-    "ssl-simulator @ git+https://github.com/Swarm-Systems-Lab/ssl_simulator.git@lie_tools",
+    #"ssl-simulator @ git+https://github.com/Swarm-Systems-Lab/ssl_simulator.git@lie_tools",
     "pyvista>=0.46.3",
     "vtk>=9.3,<9.5",
     "pyvistaqt>=0.11.3",
@@ -22,24 +23,89 @@ dependencies = [
     "typer",
 ]
 
-[build-system]
-requires = [
-    "setuptools", 
-    "wheel"
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0",
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "mypy>=1.0",
+    "pre-commit>=3.0",
+    "IPython>=8.0",
+    "ipykernel",
 ]
-build-backend = "setuptools.build_meta"
 
-[project.scripts]
-sslvista = "ssl_vista.cli:app"
+[tool.hatch.metadata]
+allow-direct-references = true
 
-[tool.setuptools.packages.find]
-where = ["."]
+[tool.hatch.version]
+path = "src/ssl_vista/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ssl_vista"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "README.md", "LICENSE"]
+exclude = ["tests", "examples", "output"]
+
+[tool.hatch.envs.default]
+python = "3.10"
+features = ["dev"]
+installer-args = ["--pre"]
+[tool.hatch.envs.default.scripts]
+format = "ruff format ."
+lint = "ruff check --fix ."
+check = "ruff check ."
+test = "pytest {args:tests}"
+test-cov = "pytest --cov=src/ssl_vista --cov-report=term-missing {args:tests}"
+type-check = "mypy src/ssl_vista"
+all = ["format", "lint", "type-check", "test"]
+
+[tool.ruff]
+line-length = 100
 exclude = ["output"]
 
-[tool.setuptools.package-data]
-"ssl_vista" = [
-    "data/assets/**/*",
-    "data/grid_layouts/*.json",
-    "data/grid_layouts/*.py",
-    "data/samples/*.csv"
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "C90",
+    "UP",
+    "B",
+    "A",
+    "C4",
+    "T20",
+    "SIM",
+    "Q",
+    "RUF",
+]
+ignore = ["D100", "D104", "F403", "F401", "E501"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --strict-markers"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+check_untyped_defs = true     # Better than disallow_untyped_defs = false
+
+[tool.coverage.run]
+source = ["src/ssl_vista"]
+omit = ["tests/*", "examples/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
 ]

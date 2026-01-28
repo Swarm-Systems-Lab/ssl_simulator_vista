@@ -1,17 +1,11 @@
-__all__ = [
-    "create_sphere_grid", 
-    "create_geodesic", 
-    "latlon_to_xyz", 
-    "make_dashed_line"
-]
+__all__ = ["create_geodesic", "create_sphere_grid", "latlon_to_xyz", "make_dashed_line"]
 
 import numpy as np
 import pyvista as pv
-
 from ssl_simulator.math import unit_vec
 
 
-def create_sphere_grid(radius=1.0, lat_step=15, lon_step=15,  lon_angles=None, resolution=360//4):
+def create_sphere_grid(radius=1.0, lat_step=15, lon_step=15, lon_angles=None, resolution=360 // 4):
     """
     Fast creation of a sphere wireframe grid with only latitude and longitude lines.
     Returns a single PolyData mesh.
@@ -23,7 +17,7 @@ def create_sphere_grid(radius=1.0, lat_step=15, lon_step=15,  lon_angles=None, r
     if lat_step is not None:
         for phi_deg in range(-90 + lat_step, 90, lat_step):
             phi = np.deg2rad(phi_deg)
-            theta_vals = np.linspace(0, 2*np.pi, resolution)
+            theta_vals = np.linspace(0, 2 * np.pi, resolution)
             x = radius * np.cos(phi) * np.cos(theta_vals)
             y = radius * np.cos(phi) * np.sin(theta_vals)
             z = radius * np.sin(phi) * np.ones_like(theta_vals)
@@ -40,8 +34,8 @@ def create_sphere_grid(radius=1.0, lat_step=15, lon_step=15,  lon_angles=None, r
         if lon_angles is None:
             lon_angles = np.arange(0, 360, lon_step)
         for theta_deg in lon_angles:
-            theta = np.deg2rad(theta_deg)   
-            phi_vals = np.linspace(-np.pi/2, np.pi/2, resolution)
+            theta = np.deg2rad(theta_deg)
+            phi_vals = np.linspace(-np.pi / 2, np.pi / 2, resolution)
             x = radius * np.cos(phi_vals) * np.cos(theta)
             y = radius * np.cos(phi_vals) * np.sin(theta)
             z = radius * np.sin(phi_vals)
@@ -57,6 +51,7 @@ def create_sphere_grid(radius=1.0, lat_step=15, lon_step=15,  lon_angles=None, r
     grid_mesh.lines = lines
     return grid_mesh
 
+
 def latlon_to_xyz(lat_deg, lon_deg, radius=1.0):
     """
     Convert latitude and longitude in degrees to 3D Cartesian coordinates on a sphere.
@@ -70,10 +65,11 @@ def latlon_to_xyz(lat_deg, lon_deg, radius=1.0):
     z = radius * np.sin(lat)
     return np.array([x, y, z])
 
+
 def create_geodesic(latlon_start, latlon_end, radius=1.0, n_points=100):
     """
     Create a PolyData line along the geodesic between two lat/lon points on a sphere.
-    
+
     Parameters:
     - latlon_start: (lat_deg, lon_deg)
     - latlon_end: (lat_deg, lon_deg)
@@ -95,13 +91,19 @@ def create_geodesic(latlon_start, latlon_end, radius=1.0, n_points=100):
     # Check for numerical issues
     eps = 1e-10
     if np.isclose(omega, 0, atol=eps):
-        raise ValueError(f"Numerical problem: start {latlon_start} and end {latlon_end} points are coincident (omega = {np.round(omega, 6)}).")
+        raise ValueError(
+            f"Numerical problem: start {latlon_start} and end {latlon_end} points are coincident (omega = {np.round(omega, 6)})."
+        )
     if np.isclose(omega, np.pi, atol=eps):
-        raise ValueError(f"Numerical problem: start {latlon_start} and end {latlon_end} points are nearly antipodal (omega = {np.round(omega, 6)}).")
+        raise ValueError(
+            f"Numerical problem: start {latlon_start} and end {latlon_end} points are nearly antipodal (omega = {np.round(omega, 6)})."
+        )
 
     # Slerp interpolation along the great circle
     t = np.linspace(0, 1, n_points)
-    points = (np.sin((1 - t) * omega)[:, None] * start_unit + np.sin(t * omega)[:, None] * end_unit) / np.sin(omega)
+    points = (
+        np.sin((1 - t) * omega)[:, None] * start_unit + np.sin(t * omega)[:, None] * end_unit
+    ) / np.sin(omega)
     points *= radius
 
     # Create PolyData line
@@ -117,6 +119,7 @@ def create_geodesic(latlon_start, latlon_end, radius=1.0, n_points=100):
     line.lines = lines.flatten()
     return line
 
+
 def make_dashed_line(polyline, dash_length=5):
     """
     polyline: pv.PolyData with a line
@@ -127,9 +130,9 @@ def make_dashed_line(polyline, dash_length=5):
     new_lines = []
     new_points = []
 
-    for i in range(0, n - 1, dash_length*2):
+    for i in range(0, n - 1, dash_length * 2):
         start_idx = len(new_points)
-        segment_points = points[i:i+dash_length]
+        segment_points = points[i : i + dash_length]
         if len(segment_points) < 2:
             continue
         new_points.extend(segment_points)
@@ -142,15 +145,15 @@ def make_dashed_line(polyline, dash_length=5):
     dashed.lines = np.array(new_lines, dtype=np.int64).flatten()
     return dashed
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     mesh1 = create_sphere_grid(radius=1.0, lat_step=15, lon_step=15)
     mesh2 = create_sphere_grid(radius=1.0, lat_step=90, lon_step=None)
-    geo_line1 = create_geodesic((-89.9,0), (90,0), radius=1.0, n_points=40)
-    geo_line1_dashed = create_geodesic((-90.1,0), (90,0), radius=1.0, n_points=60)
+    geo_line1 = create_geodesic((-89.9, 0), (90, 0), radius=1.0, n_points=40)
+    geo_line1_dashed = create_geodesic((-90.1, 0), (90, 0), radius=1.0, n_points=60)
     geo_line1_dashed = make_dashed_line(geo_line1_dashed, dash_length=3)
-    geo_line2 = create_geodesic((-89.9,90), (90,90), radius=1.0, n_points=40)
-    geo_line2_dashed = create_geodesic((-90.1,90), (90,90), radius=1.0, n_points=60)
+    geo_line2 = create_geodesic((-89.9, 90), (90, 90), radius=1.0, n_points=40)
+    geo_line2_dashed = create_geodesic((-90.1, 90), (90, 90), radius=1.0, n_points=60)
     geo_line2_dashed = make_dashed_line(geo_line2_dashed, dash_length=2)
 
     p = pv.Plotter()

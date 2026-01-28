@@ -2,7 +2,9 @@ __all__ = ["RobotFactory"]
 
 import numpy as np
 import pyvista as pv
+
 from ssl_vista.data import DataManager
+
 
 class RobotFactory:
     """
@@ -35,7 +37,7 @@ class RobotFactory:
             # Simple disk
             theta = np.linspace(0, 2 * np.pi, 50)
             verts = np.c_[np.cos(theta) * 0.25, np.sin(theta) * 0.25]
-            faces = [len(verts)] + list(range(len(verts)))
+            faces = [len(verts), *list(range(len(verts)))]
             mesh = pv.PolyData()
 
         elif robot_type == "unicycle":
@@ -74,11 +76,11 @@ class RobotFactory:
             # Small cone on top of a disk base, , pointing along +X
             body = pv.Disc(inner=0.0, outer=0.1, normal=(1, 0, 0), r_res=1, c_res=60)
             cone = pv.Cone(
-                center=(0.2, 0, 0),   # shift it so it sits nicely on the disc
+                center=(0.2, 0, 0),  # shift it so it sits nicely on the disc
                 direction=(1, 0, 0),  # <-- point along +X
                 height=0.4,
                 radius=0.1,
-                resolution=50
+                resolution=50,
             )
             mesh = body.merge(cone)
 
