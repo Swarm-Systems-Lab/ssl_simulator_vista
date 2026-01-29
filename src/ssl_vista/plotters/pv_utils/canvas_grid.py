@@ -18,18 +18,23 @@ class CanvasGrid:
             grid_range (tuple): The range of the grid in each dimension.
             ticks (tuple): The number of ticks in each dimension.
         """
+
         self.pv_plotter = pv_plotter
         self.dimension = dimension
-        self.range = range
+        # Provide sensible defaults if None
+        if grid_range is None:
+            grid_range = [5] * dimension
+        if ticks is None:
+            ticks = [11] * dimension
+        # Ensure range and ticks are lists of length 'dimension'
+        if isinstance(grid_range, (int, float)):
+            grid_range = [grid_range] * dimension
+        if isinstance(ticks, (int, float)):
+            ticks = [ticks] * dimension
+        self.range = grid_range
         self.ticks = ticks
         self.center = np.array([0.0] * dimension)
         self.mesh = None
-
-        # Ensure range and ticks are lists of length 'dimension'
-        if isinstance(self.range, (int, float)):
-            self.range = [self.range] * self.dimension
-        if isinstance(self.ticks, (int, float)):
-            self.ticks = [self.ticks] * self.dimension
 
         # Style configuration for the grid
         kw_box_style.setdefault("font_size", 10)

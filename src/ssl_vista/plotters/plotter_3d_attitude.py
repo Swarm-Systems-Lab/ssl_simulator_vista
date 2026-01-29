@@ -45,7 +45,7 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         # - Static scene objects
         self.obj_axes = None
         self.obj_sphere = None
-        self.canvas_grid = CanvasGrid(self.pvqt, dimension=3, range=1, ticks=5)
+        self.canvas_grid = CanvasGrid(self.pvqt, dimension=3, grid_range=1, ticks=5)
 
         # - Connect to context signals
         self.context.robot_focus_changed.connect(self._rotate_axes)

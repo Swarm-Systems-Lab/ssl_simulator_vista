@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Annotated, Optional
 
 import typer
 
@@ -15,13 +15,47 @@ app = typer.Typer(
 
 @app.command()
 def run(  # noqa: C901
-    layout: Optional[str] = None,
-    list_layouts_flag: bool = False,
-    data: Optional[Path] = None,
-    list_data_flag: bool = False,
-    auto_play: bool = False,
-    debug: bool = False,
-    debug_info: bool = False,
+    layout: str | None = typer.Option(
+        None,
+        "-l",
+        "--layout",
+        help="Layout type (name from grid_layouts folder) or relative JSON layout file",
+    ),
+    list_layouts_flag: bool = typer.Option(
+        False,
+        "-ll",
+        "--list-layouts",
+        help="Show all available layouts from grid_layouts folder and exit",
+    ),
+    data: Annotated[
+        Path | None,
+        typer.Option(
+            "-data",
+            "--data-path",
+            help="Path to CSV data file",
+        ),
+    ] = None,
+    list_data_flag: bool = typer.Option(
+        False,
+        "-ld",
+        "--list-data",
+        help="Show all available testing data samples and exit",
+    ),
+    auto_play: bool = typer.Option(
+        False,
+        "-ap",
+        "--auto-play",
+        help="Automatically start the simulation upon loading (data file required)",
+    ),
+    debug: bool = typer.Option(
+        False, "-dbg", "--debug", help="Enable debug mode for detailed logging"
+    ),
+    debug_info: bool = typer.Option(
+        False,
+        "-dbgi",
+        "--debug-info",
+        help="Enable debug information display in the application",
+    ),
 ):
     """
     SSL Simulator Vista - A PyVista/Matplotlib-based Visualization Tool for the SSL Simulator
@@ -29,47 +63,9 @@ def run(  # noqa: C901
     This CLI launch the Qt application with given layout and data.
 
     Examples:
-      sslvista run -l 2d_canvas -data ./data/my_data.csv
-      sslvista run -l ./layouts/custom.json -data ./data/my_data.csv
+      sslvista -l 2d_canvas -data ./data/my_data.csv
+      sslvista -l ./layouts/custom.json -data ./data/my_data.csv
     """
-    # Use typer.Option inside the function to avoid B008
-    layout = typer.Option(
-        layout,
-        "-l",
-        "--layout",
-        help="Layout type (name from grid_layouts folder) or relative JSON layout file",
-    )
-    list_layouts_flag = typer.Option(
-        list_layouts_flag,
-        "-ll",
-        "--list-layouts",
-        help="Show all available layouts from grid_layouts folder and exit",
-    )
-    data = typer.Option(
-        data,
-        "-data",
-        "--data-path",
-        help="Path to CSV data file (or sample name from samples folder)",
-    )
-    list_data_flag = typer.Option(
-        list_data_flag,
-        "-ld",
-        "--list-data",
-        help="Show all available testing data samples and exit",
-    )
-    auto_play = typer.Option(
-        auto_play,
-        "-ap",
-        "--auto-play",
-        help="Automatically start the simulation upon loading (data file required)",
-    )
-    debug = typer.Option(debug, "-dbg", "--debug", help="Enable debug mode for detailed logging")
-    debug_info = typer.Option(
-        debug_info,
-        "-dbgi",
-        "--debug-info",
-        help="Enable debug information display in the application",
-    )
 
     if debug:
         CONFIG["DEBUG"] = debug

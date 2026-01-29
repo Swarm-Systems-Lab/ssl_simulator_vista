@@ -56,7 +56,7 @@ class Plotter2DCanvas(BaseCanvasPlotter):
         base_name = "robot_"
         robots_kwargs = [
             {
-                "name": f"{base_name}{i}",
+                "robot_name": f"{base_name}{i}",
                 "icon_type": self.robot_type,
                 "color": self.robot_color,
                 "size": self.robot_size,

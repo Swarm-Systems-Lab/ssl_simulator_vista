@@ -44,7 +44,7 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
             canvas_grid_ticks = [11, 11] if dimension == 2 else [11, 11, 11]
 
         self.canvas_grid = CanvasGrid(
-            self.pvqt, dimension=dimension, range=canvas_grid_range, ticks=canvas_grid_ticks
+            self.pvqt, dimension=dimension, grid_range=canvas_grid_range, ticks=canvas_grid_ticks
         )
 
     # ---------------------------------------------------------------

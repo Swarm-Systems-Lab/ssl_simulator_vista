@@ -95,7 +95,7 @@ class SceneObject:
         self,
         translation: np.ndarray = None,
         R: np.ndarray = None,
-        scale_factor: Optional[float] = None,
+        scale_factor: float | None = None,
         center: np.ndarray = None,
     ):
         """
@@ -287,7 +287,7 @@ class SceneObjectBundle:
         self,
         translation: np.ndarray = None,
         R: np.ndarray = None,
-        scale_factor: Optional[float] = None,
+        scale_factor: float | None = None,
         center: np.ndarray = None,
     ):
         """
@@ -411,7 +411,7 @@ class Icon2D(SceneObject):
         mesh_robot = self.robot_factory.create(robot_type)
         super().__init__(mesh=mesh_robot, **kwargs)
 
-    def transform_to(self, centroid: np.ndarray = None, heading: Optional[float] = None):
+    def transform_to(self, centroid: np.ndarray = None, heading: float | None = None):
         """
         Transforms the object to a new position and orientation based on the specified
         centroid and heading. The transformation involves a translation and an optional
@@ -694,7 +694,7 @@ class Robot2D(SceneObjectBundle):
         )
         self.add_child("icon", self.icon, **kwargs)
 
-    def transform_to(self, centroid: np.ndarray, heading: Optional[float] = None):
+    def transform_to(self, centroid: np.ndarray, heading: float | None = None):
         self.icon.transform_to(centroid, heading)
 
     def set_traj_points(self, new_points: np.ndarray):
@@ -869,7 +869,7 @@ class VectorField(SceneObjectBundle):
         if vectors.shape != origins.shape:
             raise ValueError("Vectors and origins must have the same shape.")
 
-        for i, (origin, vector) in enumerate(zip(origins, vectors)):
+        for i, (origin, vector) in enumerate(zip(origins, vectors, strict=False)):
             arrow = pv.Arrow(start=origin, direction=vector, scale=self.scale)
             self.add_child(f"arrow_{i}", SceneObject(mesh=arrow), **kwargs)
 
@@ -894,7 +894,7 @@ class VectorField(SceneObjectBundle):
         if vectors.shape != origins.shape:
             raise ValueError("Vectors and origins must have the same shape.")
 
-        for i, (origin, vector) in enumerate(zip(origins, vectors)):
+        for i, (origin, vector) in enumerate(zip(origins, vectors, strict=False)):
             arrow = pv.Arrow(start=origin, direction=vector, scale=self.scale)
             child_name = f"arrow_{i}"
             if child_name in self.children:

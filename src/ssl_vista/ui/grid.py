@@ -213,7 +213,7 @@ def load_grid_from_json(file_path: str, parent=None) -> SimulationGrid:
     return grid
 
 
-def _create_plotter(plotter_type: str, context: Optional[dict] = None, **kwargs):
+def _create_plotter(plotter_type: str, context: dict | None = None, **kwargs):
     """
     Create a plotter object dynamically from its class name.
     Extend this dynamically when adding new plotter types.
