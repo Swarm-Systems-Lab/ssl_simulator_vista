@@ -1,5 +1,9 @@
 [build-system]
-requires = ["hatchling", "setuptools>=77.0.0"]
+requires = [
+    "hatchling",
+    "hatch-vcs",
+    "setuptools>=77.0.0"
+]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,10 +12,10 @@ dynamic = ["version"]
 description = "A Qt-based visualization app"
 readme = "README.md"
 requires-python = ">=3.10,<3.11"
-license = { text = "GPL-3.0-or-later" }
+license = { text = "MIT" }
 authors = [{ name = "Jesús Bautista Villar", email = "jesbauti20@gmail.com" }]
 dependencies = [
-    "ssl-simulator @ git+https://github.com/Swarm-Systems-Lab/ssl_simulator.git@lie_tools",
+    "ssl-simulator",
     "pyvista>=0.46.3",
     "vtk>=9.3,<9.5",
     "pyvistaqt>=0.11.3",
@@ -24,12 +28,51 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Developer default: everything needed to run tox/just locally
 dev = [
-    "ruff>=0.1.0",
+    "tox>=4.18",
+    "tox-uv>=1.9",
+    "ruff>=0.9.0",
+    "semgrep>=1.54.0",
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "mypy>=1.0",
+    "pytest-xdist>=3.5",
     "pre-commit>=3.0",
+    "ty>=0.0.14",
+    "build>=1.2.2",
+    "twine>=5.1.1",
+]
+# Targeted extras so tox envs stay reproducible
+lint = [
+    "ruff>=0.9.0",
+    "semgrep>=1.54.0",
+]
+tests = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-xdist>=3.5",
+]
+pre-commit = [
+    "pre-commit>=3.0",
+]
+type-checking = [
+    "ty>=0.0.14",
+]
+release = [
+    "build>=1.2.2",
+    "twine>=5.1.1",
+]
+
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+
+
+examples = [
+    "matplotlib>=3.7",
+    "matplotlib-inline>=0.1.6,<0.3",
     "IPython>=8.0",
     "ipykernel",
 ]
@@ -37,11 +80,15 @@ dev = [
 [project.scripts]
 sslvista = "ssl_vista.cli:app"
 
+# --- Hatch Configuration ---
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.version]
-path = "src/ssl_vista/__init__.py"
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ssl_vista"]
@@ -50,55 +97,68 @@ packages = ["src/ssl_vista"]
 include = ["src", "README.md", "LICENSE"]
 exclude = ["tests", "examples", "output"]
 
-[tool.hatch.envs.default]
-python = "3.10"
-features = ["dev"]
-installer-args = ["--pre"]
-[tool.hatch.envs.default.scripts]
-format = "ruff format ."
-lint = "ruff check --fix ."
-check = "ruff check ."
-test = "pytest {args:tests}"
-test-cov = "pytest --cov=src/ssl_vista --cov-report=term-missing {args:tests}"
-type-check = "mypy src/ssl_vista"
-all = ["format", "lint", "type-check", "test"]
+[[tool.uv.index]]
+name = "internal-repo"
+url = "http://gitea.lyapunov.local/api/packages/Swarm-Systems-Lab/pypi/simple/"
 
+[tool.uv.sources]
+ssl-simulator = { index = "internal-repo" }
+
+# --- Tool Configuration ---
 [tool.ruff]
 line-length = 100
 exclude = ["output"]
+target-version = "py310" # Checks python 3.10 works
 
 [tool.ruff.lint]
 select = [
-    "E",
-    "F",
-    "W",
-    "I",
-    "C90",
-    "UP",
-    "B",
-    "A",
-    "C4",
-    "T20",
-    "SIM",
-    "Q",
-    "RUF",
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort (Import sorting)
+    "UP",     # pyupgrade (Modernizes syntax automatically)
+    "B",      # flake8-bugbear (Catches common bugs)
+    "A",      # flake8-builtins
+    "C4",     # flake8-comprehensions
+    "T20",    # flake8-print (Warns about print statements)
+    "SIM",    # flake8-simplify
+    "RUF",    # ruff-specific rules
+    "S",
 ]
-ignore = ["D100", "D104", "F403", "F401", "E501"]
+ignore = [
+    "D100",   # Missing docstring in public module
+    "D104",   # Missing docstring in public package
+    "E501",   # Line too long (handled by formatter)
+    "F403",
+    "F401",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S603"]
+"scripts/template_prune.py" = ["T201"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --strict-markers"
-
-[tool.mypy]
-python_version = "3.8"
-warn_return_any = true
-warn_unused_configs = true
-ignore_missing_imports = true
-check_untyped_defs = true     # Better than disallow_untyped_defs = false
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+]
+# Keep test artifacts only on failure for debugging
+tmp_path_retention_policy = "failed"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 
 [tool.coverage.run]
 source = ["src/ssl_vista"]
@@ -111,4 +171,93 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
+]
+
+# Use uv for fast, reproducible environments
+[tool.tox]
+requires = ["tox-uv>=1.0"]
+env_list = [
+    "pre-commit",
+    "lint",
+    "security",
+    "tests",
+    "tests-fast",
+    "py310",
+
+    "docs",
+
+]
+
+[tool.tox.env_run_base]
+# Pass environment variables to test environments
+passenv = ["*"]
+setenv = { UV_EXTRA_INDEX_URL = "http://gitea.lyapunov.local/api/packages/Swarm-Systems-Lab/pypi/simple/", PIP_EXTRA_INDEX_URL = "http://gitea.lyapunov.local/api/packages/Swarm-Systems-Lab/pypi/simple/" }
+
+[tool.tox.env.pre-commit]
+description = "Run pre-commit hooks"
+extras = ["pre-commit"]
+commands = [
+    ["pre-commit", "run", "--all-files", "--show-diff-on-failure"],
+]
+
+[tool.tox.env.lint]
+description = "Run ruff linting and formatting"
+extras = ["lint"]
+commands = [
+    ["ruff", "check", "src", "tests"],
+    ["ruff", "format", "--check", "src", "tests"],
+]
+
+[tool.tox.env.security]
+description = "Run semgrep security scans"
+extras = ["lint"]
+commands = [
+    ["semgrep", "--config", "p/ci", "--config", ".semgrep.yml"],
+]
+
+[tool.tox.env.type-checking]
+description = "Run ty type checks"
+extras = ["type-checking"]
+commands = [
+    ["ty", "check"],
+]
+
+[tool.tox.env.tests]
+extras = ["tests"]
+commands = [
+    [
+        "pytest",
+        "--cov=ssl_vista",
+        "--cov-report",
+        "term",
+        "--cov-report",
+        "xml:cov.xml",
+    ],
+]
+
+[tool.tox.env.tests-fast]
+extras = ["tests"]
+commands = [
+    ["pytest", "tests", "-n", "auto", "-m", "not slow"],
+]
+
+[tool.tox.env.build]
+description = "Build sdist and wheel artifacts"
+extras = ["release"]
+commands = [
+    ["python", "-m", "build", "--sdist", "--wheel", "--outdir", "dist"],
+]
+
+[tool.tox.env.py310]
+base_python = ["python3.10"]
+extras = ["tests"]
+commands = [
+    ["pytest", "tests"],
+]
+
+[tool.tox.env.docs]
+description = "Build the MkDocs site"
+extras = ["docs"]
+commands = [
+    ["mkdocs", "build", "--clean"],
 ]

@@ -14,7 +14,7 @@ app = typer.Typer(
 
 
 @app.command()
-def run(  # noqa: C901
+def run(
     layout: str | None = typer.Option(
         None,
         "-l",
