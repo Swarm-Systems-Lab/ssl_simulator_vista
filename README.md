@@ -1,63 +1,132 @@
-# SSL Simulator Visualizer
+# ssl_vista
+
+A Qt-based visualization app"
+
+⚠️ **Warning:** This project is a work in progress and uses Generative AI for both documentation and code generation.
 
 ## Installation
 
-We recommend creating a dedicated virtual environment to avoid conflicts with other Python packages:
-
 ```bash
-python -m venv venv
-source venv/bin/activate   # Linux/macOS
-# venv\Scripts\activate    # Windows
+pip install ssl_vista
 ```
-
-Then, install the package in editable mode to allow development changes:
-
-```bash
-pip install --upgrade pip
-pip install -e .
-```
-
-Installing with `-e` (editable) ensures that any changes to the source code are reflected immediately without reinstalling.
-
-If you want to use this package in a project, you can add the following line to your `requirements.txt` file:
-
-```
-git+https://github.com/Swarm-Systems-Lab/ssl_simulator_vista.git
-```
-
-> ⚠️ All dependencies, including the simulator and PyVista, are specified in `pyproject.toml` to ensure compatibility. Do **not modify dependency versions** to guarantee stable and reproducible environments.
 
 ## Usage
 
-You can launch the application from anywhere once the virtual environment is active:
+```python
+import ssl_vista
 
-```bash
-sslvista
+# Example usage
+result = ssl_vista.hello()
+print(result)
 ```
 
-### Options:
+## Development
 
-- `-l` / `--layout` : Layout type (name from `grid_layouts` folder) or relative path to a `.json` layout file.
-- `-ll` / `--list-layouts` : Show all available layouts from the `grid_layouts` folder and exit.
-- `-data` / `--data-path` : Path to a CSV data file (or sample name from the `samples` folder).
-- `-ld` / `--list-data` : Show all available testing data samples and exit.
-- `-ap` / `--auto-play` : Automatically start the simulation upon loading (data file required).
-- `-dbg` / `--debug` : Enable debug mode for detailed logging.
-- `-dbgi` / `--debug-info` : Enable debug information display in the application.
+This project follows the **SSL Golden Path** for streamlined Python development.
 
-### Example:
+### Quick Setup
 
 ```bash
-# List available layouts
-sslvista -ll
+# Clone the repository
+git clone https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista
+cd ssl_vista
 
-# Use a default 3D layout (providing -data is optional)
-sslvista -l 3d_canvas -data ./data/my_simulation.csv -ap
+# One-command setup (installs uv, creates .venv, installs dependencies)
+just setup
 
-# Use a custom layout file
-sslvista -l ./layouts/custom_layout.json -data ./data/my_simulation.csv
+# Verify everything works
+just test
 ```
 
-## Credits
+### Common Commands
 
-- **[Jesús Bautista Villar](https://sites.google.com/view/jbautista-research)** (<jesbauti20@gmail.com>) – Main Developer
+All project tasks are managed via `just`. Run `just --list` to see all available commands.
+
+**Essential commands:**
+```bash
+just setup          # Initial environment setup
+just test           # Run full test suite (what CI runs)
+just test-fast      # Quick parallel tests (skip slow tests)
+just lint           # Check code style
+just typecheck      # Check types
+just security       # Run security scans
+just check-all      # Full CI simulation (run before pushing!)
+just build          # Build package
+
+just docs           # Start documentation server
+
+```
+
+**Testing workflows:**
+```bash
+just test-one test_name      # Run specific test
+just test-multi-py           # Test on Python 3.10-3.14
+uv run pytest -vv            # Verbose output
+uv run pytest --pdb          # Debug on failure
+```
+
+### Development Tools
+
+- **Package Manager**: [`uv`](https://github.com/astral-sh/uv) - Fast Rust-based Python package manager
+- **Task Runner**: [`just`](https://github.com/casey/just) - Command runner for project tasks
+- **Linting**: [`ruff`](https://github.com/astral-sh/ruff) - Fast linter and formatter
+- **Type Checking**: `ty` (mypy wrapper) - Static type analysis
+- **Testing**: `pytest` with coverage and parallel execution
+- **Security**: `semgrep` - Security vulnerability scanning
+
+### Project Structure
+
+```
+ssl_vista/
+├── src/ssl_vista/     # Source code (importable package)
+├── tests/                      # Test files (mirrors src structure)
+
+├── docs/                       # Documentation (MkDocs)
+
+
+├── examples/                   # Usage examples
+
+├── pyproject.toml              # Project metadata and dependencies
+├── justfile                    # Task definitions
+└── uv.lock                     # Locked dependencies
+```
+
+
+## Documentation
+
+
+Full documentation is available at [https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista/blob/main/docs](https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista/blob/main/docs)
+
+
+**Build locally:**
+```bash
+just docs        # Start server at http://localhost:8000 with live reload
+just docs-build  # Build static documentation
+```
+
+
+
+## Examples
+
+See the [examples/](examples/) directory for usage examples.
+
+**Run the basic example:**
+```bash
+just example
+# Or directly:
+uv run python examples/basic_usage.py
+```
+
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](docs/contributing.md) for guidelines.
+
+**Before submitting a PR:**
+```bash
+just check-all  # Runs lint, security, test, typecheck, pre-commit
+```
+
+## License
+
+MIT
