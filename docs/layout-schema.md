@@ -1,6 +1,7 @@
 # Layout schema
 
 Grid layouts are JSON files consumed by `load_grid_from_json` (`src/ssl_vista/ui/grid.py`).
+They are validated against strict Pydantic models before any Qt widgets or plotters are created.
 
 ## Top-level schema
 
@@ -81,11 +82,13 @@ Example (`example_mpl.json`):
 
 ## Validation behavior
 
-`SimulationGrid` enforces:
+Validation is strict (`extra="forbid"`) and enforces:
 
 - position bounds inside `shape`
 - one plotter per grid cell
-- plotter type resolution against available classes
+- `module_path` + `class_name` required together
 - `module_path` + `class_name` required for custom dynamic entries
 
-Errors raise `ValueError`/`FileNotFoundError` early during load.
+After schema validation, plotter classes are resolved through the plotter registry.
+
+Errors raise schema validation exceptions (invalid layout shape/fields/positions) or loader exceptions (missing file, unknown class/type).

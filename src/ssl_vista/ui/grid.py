@@ -1,15 +1,15 @@
 import json
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from PyQt5.QtCore import QObject, Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QGridLayout, QLabel, QSplitter, QVBoxLayout, QWidget
-from ssl_simulator import load_class_from_file
+from PyQt5.QtWidgets import QSplitter, QVBoxLayout, QWidget
 
 from ssl_vista import CONFIG
-from ssl_vista.plotters import *
 from ssl_vista.plotters import _BasePlotter
+from ssl_vista.plotters.registry import create_plotter_instance
+
+from .layout_schema import parse_layout_config
 
 
 class SimulationGridContext(QObject):
@@ -78,7 +78,7 @@ class SimulationGrid(QWidget):
                 for j in range(self._shape[1]):
                     if self._plotter_array[i, j] is None:
                         self._plotter_array[i, j] = plotter
-                        self.layout.addWidget(plotter.get_widget(), i, j)
+                        self._splitter_rows[i].addWidget(plotter.get_widget())
                         if CONFIG["DEBUG"]:
                             pass
                         return
@@ -149,13 +149,13 @@ class SimulationGrid(QWidget):
 # GRID LOADER FUNCTIONS
 
 
-def load_grid_from_json(file_path: str, parent=None) -> SimulationGrid:
+def load_grid_from_json(file_path: str | Path, parent=None) -> SimulationGrid:
     """
     Load and configure a SimulationGrid instance from a JSON layout file.
 
     Parameters
     ----------
-    file_path : str
+    file_path : str | Path
         Path to the JSON configuration file.
     parent : QWidget, optional
         Parent widget for the grid.
@@ -173,59 +173,27 @@ def load_grid_from_json(file_path: str, parent=None) -> SimulationGrid:
     with open(file_path) as f:
         layout_data = json.load(f)
 
-    # Read grid shape (default = (1, 1))
-    shape = tuple(layout_data.get("shape", [1, 1]))
+    layout_config = parse_layout_config(layout_data, source=file_path)
+
+    # Read grid shape
+    shape = layout_config.shape
     grid = SimulationGrid(parent=parent, shape=shape)
 
     # Load plotters info
-    plotters = layout_data.get("plotters", [])
-    for plotter_data in plotters:
-        plotter_type = plotter_data.get("type", "Plotter2DCanvas")
-        position = tuple(plotter_data.get("position", (0, 0)))
-        args = plotter_data.get("args", {})
-
-        # Check if this plotter should be loaded dynamically from file
-        module_path = plotter_data.get("module_path")
-        class_name = plotter_data.get("class_name")
-
-        if plotter_type.startswith("Base"):
-            if module_path and class_name:
-                module_path = (file_path.parent / module_path).resolve()
-                plotter_cls = load_class_from_file(module_path, class_name)
-                plotter = plotter_cls(context=grid.context, **args)
-                if CONFIG["DEBUG"]:
-                    pass
-            else:
-                raise ValueError(
-                    str(file_path)
-                    + ": 'module_path' and 'class_name' must be specified for custom matplotlib plotters."
-                )
-        else:
-            # Use built-in factory (dynamically instantiate the plotter based on type)
-            plotter = _create_plotter(plotter_type, grid.context, **args)
+    for plotter_data in layout_config.plotters:
+        plotter = create_plotter_instance(
+            plotter_data.type,
+            context=grid.context,
+            module_path=plotter_data.module_path,
+            class_name=plotter_data.class_name,
+            base_dir=file_path.parent,
+            **plotter_data.args,
+        )
 
         # Add to grid
-        grid.add_plotter(plotter, position=position)
+        grid.add_plotter(plotter, position=plotter_data.position)
 
     if CONFIG["DEBUG"]:
         pass
 
     return grid
-
-
-def _create_plotter(plotter_type: str, context: dict | None = None, **kwargs):
-    """
-    Create a plotter object dynamically from its class name.
-    Extend this dynamically when adding new plotter types.
-    """
-    plotter_cls = globals().get(plotter_type)
-    if plotter_cls is None:
-        available_plotters = sorted([name for name in globals() if name.startswith("Plotter")])
-        available_base_plotters = sorted([name for name in globals() if name.startswith("Base")])
-        raise ValueError(
-            f"Unknown plotter type '{plotter_type}'.\n"
-            f"- Available plotters: {available_plotters}\n"
-            f"- Available base plotters: {available_base_plotters}"
-        )
-
-    return plotter_cls(context=context, **kwargs)

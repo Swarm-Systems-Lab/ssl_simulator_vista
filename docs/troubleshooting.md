@@ -31,6 +31,23 @@ uv run sslvista --list-layouts
 uv run sslvista --list-data
 ```
 
+## Layout validation errors
+
+Symptoms:
+
+- Error indicating invalid layout schema before the app window appears
+
+Cause:
+
+- Layout JSON failed strict schema checks (invalid shape, duplicate/out-of-bounds positions, unsupported fields, or missing custom loader fields).
+
+Fix:
+
+1. Validate top-level fields: `shape`, `plotters`.
+2. Ensure each plotter has a unique valid `position`.
+3. For custom local plotters, provide both `module_path` and `class_name`.
+4. Remove unknown fields from layout entries.
+
 ## Data file loads but plotter fails
 
 Symptoms:

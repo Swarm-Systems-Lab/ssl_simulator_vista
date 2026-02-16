@@ -44,14 +44,16 @@ The layout entry points to a module file and class:
 
 ## Registering built-in plotters
 
-Built-ins are resolved by class name from `ssl_vista.plotters` package globals.
+Built-ins are resolved through the plotter registry (`ssl_vista.plotters.registry`).
 To make a new built-in available:
 
 1. Add a class under `src/ssl_vista/plotters`.
 2. Ensure it inherits from a valid base and exposes required methods.
 3. Reference its class name in layout `type`.
 
-The package `plotters/__init__.py` auto-imports classes in the folder.
+The package `plotters/__init__.py` imports classes and registers concrete plotter types at import time.
+
+For local custom plugins, use layout fields `module_path` and `class_name`; these are validated by schema and then loaded by the registry loader.
 
 ## Shared context and cross-plotter interaction
 
