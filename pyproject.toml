@@ -11,7 +11,7 @@ name = "ssl_vista"
 dynamic = ["version"]
 description = "A Qt-based visualization app"
 readme = "README.md"
-requires-python = ">=3.10,<3.11"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Jesús Bautista Villar", email = "jesbauti20@gmail.com" }]
 dependencies = [
@@ -183,6 +183,9 @@ env_list = [
     "tests",
     "tests-fast",
     "py310",
+    "py311",
+    "py312",
+    "py313",
 
     "docs",
 
@@ -250,6 +253,27 @@ commands = [
 
 [tool.tox.env.py310]
 base_python = ["python3.10"]
+extras = ["tests"]
+commands = [
+    ["pytest", "tests"],
+]
+
+[tool.tox.env.py311]
+base_python = ["python3.11"]
+extras = ["tests"]
+commands = [
+    ["pytest", "tests"],
+]
+
+[tool.tox.env.py312]
+base_python = ["python3.12"]
+extras = ["tests"]
+commands = [
+    ["pytest", "tests"],
+]
+
+[tool.tox.env.py313]
+base_python = ["python3.13"]
 extras = ["tests"]
 commands = [
     ["pytest", "tests"],
