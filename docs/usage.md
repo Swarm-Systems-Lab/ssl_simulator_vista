@@ -1,363 +1,110 @@
-# Usage Guide
+# Usage
 
-This guide covers how to use ssl_vista effectively, from installation to common workflows.
+This page covers practical use of `ssl_vista`: listing available resources, launching the app, and controlling playback.
 
-## Installation
+## Prerequisites
 
-### For End Users
+- Python 3.10+
+- GUI environment compatible with Qt (X11/xcb on Linux)
+- Simulation CSV files generated for `ssl-simulator`
 
-Install the latest stable version from PyPI:
-
-```bash
-pip install ssl_vista
-```
-
-Or with `uv` (faster):
+For local development:
 
 ```bash
-uv pip install ssl_vista
-```
-
-### For Developers
-
-Clone and set up the development environment:
-
-```bash
-# Clone the repository
 git clone https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista
 cd ssl_vista
-
-# One-command setup
 just setup
-
-# Verify installation
-uv run python -c "import ssl_vista; print(ssl_vista.__version__)"
 ```
 
-## Basic Usage
+## CLI entrypoint
 
-### Importing the Package
-
-```python
-import ssl_vista
-
-# Access package version
-print(ssl_vista.__version__)
-
-# Import specific modules
-from ssl_vista.core import CoreClass
-from ssl_vista.utils import helper_function
-```
-
-### Common Workflows
-
-#### Example 1: Basic Usage
-
-```python
-from ssl_vista import example_function
-
-# Use the function
-result = example_function(input_data)
-print(result)
-```
-
-#### Example 2: Advanced Usage
-
-```python
-from ssl_vista.core import CoreClass
-
-# Initialize with configuration
-processor = CoreClass(
-    param1="value1",
-    param2=42
-)
-
-# Process data
-output = processor.process(data)
-```
-
-## Development Workflows
-
-### Running Tests
-
-ssl_vista uses `just` for task automation. Here are the most common test commands:
+The project exposes `sslvista`:
 
 ```bash
-# Run all tests with coverage (what CI runs)
+uv run sslvista --help
+```
+
+Primary options:
+
+- `--layout` / `-l`: layout name (`2d_canvas`) or path to a layout JSON file
+- `--data-path` / `-data`: sample name (`data_uny_test`) or CSV path
+- `--list-layouts` / `-ll`: print built-in layout names and exit
+- `--list-data` / `-ld`: print bundled sample data names and exit
+- `--auto-play` / `-ap`: start playback automatically after data load
+- `--debug` / `-dbg`: enable debug mode
+- `--debug-info` / `-dbgi`: enable verbose simulator data info
+
+## Typical workflows
+
+### 1) Discover bundled resources
+
+```bash
+uv run sslvista --list-layouts
+uv run sslvista --list-data
+```
+
+### 2) Run with bundled layout and sample data
+
+```bash
+uv run sslvista --layout 2d_canvas --data-path data_uny_test
+uv run sslvista --layout 3d_canvas --data-path data_3d_test
+```
+
+### 3) Run with custom files
+
+```bash
+uv run sslvista --layout ./my_layout.json --data-path ./my_run.csv
+```
+
+### 4) Start immediately playing
+
+```bash
+uv run sslvista --layout 3d_canvas --data-path data_3d_test --auto-play
+```
+
+## In-app controls
+
+### Toolbar actions
+
+- **Load Grid Layout**: open a JSON layout file
+- **Load CSV**: open a simulation CSV file
+- **Reload CSV**: reprocess currently loaded file
+- **Play / Stop / Reset**: playback controls
+- **Time slider**: manual frame selection
+
+### Keyboard shortcuts (main window)
+
+- `Space`: play/pause
+- `R`: reset simulation
+- `Left` / `Right`: coarse step backward/forward
+- `,` / `.`: single-step backward/forward
+- `Q`: quit application
+
+### Keyboard shortcuts (3D attitude plotter)
+
+- `PageUp` / `PageDown`: cycle focused robot index
+- `R`: reset camera in the attitude panel
+
+## Layout and data inputs
+
+- Layout files are JSON configurations loaded by `SimulationGrid`.
+- Each plotter declares required simulation keys and shapes.
+- Bundled examples are in `src/ssl_vista/data/grid_layouts` and `src/ssl_vista/data/samples`.
+
+See [Layout schema](layout-schema.md) and [Data schema](data-schema.md) for exact contracts.
+
+## Common dev commands
+
+```bash
 just test
-
-# Quick test run (parallel, skips slow tests)
 just test-fast
-
-# Run a specific test
-just test-one test_my_feature
-
-# Test across all supported Python versions
-just test-multi-py
-```
-
-**Direct pytest usage** (if you need more control):
-
-```bash
-# Run all tests
-uv run pytest
-
-# Run specific test file
-uv run pytest tests/test_core.py
-
-# Run specific test function
-uv run pytest tests/test_core.py::test_specific_function
-
-# Run with verbose output
-uv run pytest -vv
-
-# Run with coverage report
-uv run pytest --cov=ssl_vista --cov-report=html
-
-# Run in parallel (faster)
-uv run pytest -n auto
-
-# Run only failed tests from last run
-uv run pytest --lf
-
-# Drop into debugger on failure
-uv run pytest --pdb
-```
-
-### Code Quality Checks
-
-Ensure your code meets quality standards before committing:
-
-```bash
-# Run linting (ruff check + format check)
 just lint
-
-# Run type checking (mypy)
 just typecheck
-
-# Run security scanning (semgrep)
-just security
-
-# Run pre-commit hooks manually
-just pre-commit
-
-# Run everything (what CI does)
-just check-all
-```
-
-**Manual ruff usage** (for auto-fixes):
-
-```bash
-# Auto-fix linting issues
-uv run ruff check --fix .
-
-# Format code
-uv run ruff format .
-
-# Check specific file
-uv run ruff check src/ssl_vista/myfile.py
-```
-
-### Building the Package
-
-```bash
-# Build sdist and wheel
-just build
-
-# Output appears in dist/
-ls -lh dist/
-```
-
-
-### Working with Documentation
-
-```bash
-# Start local documentation server (http://localhost:8000)
 just docs
-
-# Build static documentation
 just docs-build
-
-# Validate documentation
-just validate-docs
 ```
 
-Documentation is written in Markdown in the `docs/` directory. The API reference is automatically generated from docstrings using `mkdocstrings`.
-
-
-## Environment Management
-
-### Using uv (Recommended)
-
-`uv` is a fast Python package manager written in Rust. It's the recommended way to manage dependencies:
-
-```bash
-# Create/sync environment (handled by just setup)
-uv sync
-
-# Install additional packages
-uv add package-name
-
-# Install specific extras
-uv sync --extra dev
-uv sync --extra tests
-
-# Install all extras
-uv sync --all-extras
-
-# Run commands in the environment
-uv run python script.py
-uv run pytest
-
-# Update dependencies
-uv lock --upgrade
-```
-
-### Virtual Environment Activation
-
-While `uv run` is convenient, you can also activate the virtual environment:
-
-```bash
-# Activate (Linux/macOS)
-source .venv/bin/activate
-
-# Activate (Windows)
-.venv\Scripts\activate
-
-# Now you can run commands directly
-python script.py
-pytest
-
-# Deactivate when done
-deactivate
-```
-
-### Dependency Management
-
-Dependencies are defined in `pyproject.toml`:
-
-- **Runtime dependencies**: `[project.dependencies]`
-- **Optional extras**: `[project.optional-dependencies]`
-  - `dev`: Development tools (tox, ruff, etc.)
-  - `tests`: Testing tools (pytest, pytest-cov, etc.)
-  - `lint`: Linting tools (ruff, semgrep)
-  - `type-checking`: Type checking tools (ty/mypy)
-  - `pre-commit`: Pre-commit hooks
-
-  - `docs`: Documentation tools (mkdocs, mkdocstrings)
-
-
-  - `examples`: Example dependencies (matplotlib, IPython, etc.)
-
-
-```bash
-# Lock dependencies (creates/updates uv.lock)
-uv lock
-
-# Update to latest compatible versions
-uv lock --upgrade
-
-# Add a new dependency
-uv add package-name
-
-# Add a dev dependency
-uv add --group dev package-name
-```
-
-## Configuration
-
-### Tool Configuration
-
-All tool configuration is in `pyproject.toml`:
-
-- **Ruff**: `[tool.ruff]` - linting and formatting
-- **Pytest**: `[tool.pytest.ini_options]` - test configuration
-- **Coverage**: `[tool.coverage.*]` - coverage settings
-- **Tox**: `[tool.tox.*]` - test automation
-- **Hatch**: `[tool.hatch.*]` - build configuration
-
-### Environment Variables
-
-Some tasks use environment variables:
-
-- `UV_PUBLISH_TOKEN`: PyPI token for `just publish`
-- `UV_PUBLISH_URL`: PyPI URL for `just publish`
-- `TWINE_USERNAME`: PyPI username for `just publish-ci`
-- `TWINE_PASSWORD`: PyPI password for `just publish-ci`
-
-## Troubleshooting
-
-### Common Issues
-
-**Tests fail locally but pass in CI**
-```bash
-# Clean environment and rebuild
-just clean
-rm -rf .venv uv.lock
-just setup
-just test
-```
-
-**Linting failures**
-```bash
-# Auto-fix most issues
-uv run ruff check --fix .
-uv run ruff format .
-```
-
-**Type checking errors**
-```bash
-# Run type checker with verbose output
-uv run ty check --verbose
-```
-
-**Import errors**
-```bash
-# Ensure package is installed in editable mode
-uv sync
-
-# Or manually
-uv pip install -e .
-```
-
-**Slow tests**
-```bash
-# Run tests in parallel
-just test-fast
-
-# Or directly with pytest
-uv run pytest -n auto
-```
-
-### Getting Help
-
-- 📖 **Documentation**: Check [Golden Path](golden-path.md) and [Contributing](contributing.md)
-- 🐛 **Issues**: Search or create an issue at [https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista/issues](https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista/issues)
-- 💬 **Discussions**: Ask questions at [https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista/discussions](https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista/discussions)
-- 📧 **Email**: Contact jesbauti20@gmail.com
-
-## Next Steps
-
-- Review the [API Reference](api.md) for detailed module documentation
-- Check out [Contributing Guidelines](contributing.md) to contribute
-- Explore the [Golden Path](golden-path.md) to understand the development philosophy
-
-## Quick Reference
-
-### Essential Commands
-
-| Command | Purpose |
-|---------|----------|
-| `just setup` | Initial setup (run once after cloning) |
-| `just test` | Run full test suite |
-| `just test-fast` | Quick test run (parallel, skip slow) |
-| `just lint` | Check code style |
-| `just typecheck` | Check types |
-| `just security` | Run security scans |
-| `just check-all` | Full CI simulation |
-| `just build` | Build package |
-
-| `just docs` | Start doc server |
+For full command reference, see [Golden path](golden-path.md).
 
 | `just clean` | Remove build artifacts |
 

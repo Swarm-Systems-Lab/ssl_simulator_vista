@@ -45,6 +45,10 @@ plugins:
 nav:
   - Home: index.md
   - Usage: usage.md
+  - Architecture: architecture.md
+  - Layout schema: layout-schema.md
+  - Data schema: data-schema.md
+  - Plotter development: plotter-development.md
   - API Reference: api.md
   - Golden path: golden-path.md
   - Contributing: contributing.md
