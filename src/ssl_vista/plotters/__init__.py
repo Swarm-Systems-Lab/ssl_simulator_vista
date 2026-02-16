@@ -2,6 +2,14 @@ import importlib
 import inspect
 import pkgutil
 
+from ._base_plotters import _BasePlotter
+from .registry import (
+    create_plotter_instance,
+    get_plotter_class,
+    list_registered_plotters,
+    register_plotter,
+)
+
 # Automatically import all modules inside the "plotters" package
 __all__ = []
 
@@ -16,3 +24,15 @@ for module_info in pkgutil.iter_modules(__path__):
         if obj.__module__ == full_module_name:
             globals()[name] = obj
             __all__.append(name)
+
+            if not name.startswith("_") and issubclass(obj, _BasePlotter):
+                register_plotter(name, obj, overwrite=True)
+
+__all__.extend(
+    [
+        "create_plotter_instance",
+        "get_plotter_class",
+        "list_registered_plotters",
+        "register_plotter",
+    ]
+)
