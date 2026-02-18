@@ -4,7 +4,7 @@ import sys
 import numpy as np
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
-from ssl_simulator import load_sim
+from ssl_simulator.utils.processing import load_sim
 
 from ssl_vista import CONFIG
 

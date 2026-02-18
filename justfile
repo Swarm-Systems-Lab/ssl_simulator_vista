@@ -65,7 +65,7 @@ test-one TEST:
 
 # Run tests across multiple Python versions
 test-multi-py:
-    uv run tox -e py310,py311,py312,py313
+    uv run tox -e py312,py313,py314
 
 # List all tox environments
 list:
