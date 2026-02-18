@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ssl_simulator import load_class_from_file
+from ssl_simulator.utils.file_ops import load_class_from_file
 
 from ._base_plotters import _BasePlotter
 
