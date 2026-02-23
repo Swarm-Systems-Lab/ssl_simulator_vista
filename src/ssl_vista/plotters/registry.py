@@ -34,7 +34,7 @@ def list_registered_plotters() -> list[str]:
 
 
 def create_plotter_instance(
-    plotter_type: str,
+    plotter_type: str | type[_BasePlotter],
     *,
     context=None,
     module_path: str | None = None,
@@ -42,7 +42,32 @@ def create_plotter_instance(
     base_dir: Path | None = None,
     **kwargs,
 ) -> _BasePlotter:
-    """Create a plotter instance from registry or from a local file plugin."""
+    """Create a plotter instance from a class object, registry name, or file plugin.
+
+    Parameters
+    ----------
+    plotter_type:
+        Either a **class object** that is a subclass of ``_BasePlotter`` (programmatic
+        path), or a **string** registry name / ``'BaseMplPlotter'`` sentinel for the
+        file-based path.
+    context:
+        Shared :class:`~ssl_vista.ui.grid.SimulationGridContext` instance.
+    module_path:
+        (File-based path only) Path to a Python module containing a custom plotter.
+    class_name:
+        (File-based path only) Name of the class inside *module_path*.
+    base_dir:
+        Base directory used to resolve relative *module_path* values.
+    **kwargs:
+        Additional keyword arguments forwarded to the plotter constructor.
+    """
+    # --- Programmatic path: caller passed a class directly ---
+    if isinstance(plotter_type, type):
+        if not issubclass(plotter_type, _BasePlotter):
+            raise TypeError(f"Class '{plotter_type.__name__}' must inherit from _BasePlotter.")
+        return plotter_type(context=context, **kwargs)
+
+    # --- File-plugin path: load from an external Python file ---
     if module_path is not None and class_name is not None:
         module_file = Path(module_path)
         if not module_file.is_absolute():
@@ -57,5 +82,6 @@ def create_plotter_instance(
             )
         return plotter_cls(context=context, **kwargs)
 
-    plotter_cls = get_plotter_class(plotter_type)
-    return plotter_cls(context=context, **kwargs)
+    # --- Registry path: look up by string name ---
+    resolved_cls = get_plotter_class(plotter_type)
+    return resolved_cls(context=context, **kwargs)
