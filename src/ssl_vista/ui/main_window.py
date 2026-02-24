@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import os
 import sys
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from PyQt5.QtCore import Qt, QTimer
@@ -8,8 +11,11 @@ from ssl_simulator.utils.processing import load_sim
 
 from ssl_vista import CONFIG
 
-from .grid import load_grid_from_json
+from .grid import SimulationGrid, load_grid_from_json
 from .toolbars import SimulationToolbar
+
+if TYPE_CHECKING:
+    from ssl_vista.types import SimData, SimSettings
 
 # For Wayland compatibility (e.g. Ubuntu)
 os.environ["QT_QPA_PLATFORM"] = "xcb"
@@ -20,13 +26,17 @@ class MainWindow(QMainWindow):
 
     def __init__(
         self,
-        title="Simulation Viewer",
-        layout=None,
-        data_path=None,
-        auto_play=False,
-        width_ratio=0.8,
-        height_ratio=0.8,
-        animation_period=40,
+        title: str = "Simulation Viewer",
+        layout: str | None = None,
+        data_path: str | None = None,
+        auto_play: bool = False,
+        width_ratio: float = 0.8,
+        height_ratio: float = 0.8,
+        animation_period: int = 40,
+        # --- Programmatic path ---
+        grid: SimulationGrid | None = None,
+        sim_data: SimData | None = None,
+        sim_settings: SimSettings | None = None,
     ):
         super().__init__()
         self.setWindowTitle(title)
@@ -93,10 +103,16 @@ class MainWindow(QMainWindow):
         # TODO: fix focus issues with grid stealing keys
 
         # --- Load initial layout and data if provided ---
-        if layout is not None:
-            self.load_grid_layout(layout)
-        if data_path is not None:
-            self.load_csv(data_path)
+        # Programmatic path takes priority over file-based path.
+        if grid is not None:
+            self._load_grid_direct(grid)
+            if sim_data is not None:
+                self._load_sim_direct(sim_data, sim_settings if sim_settings is not None else {})
+        else:
+            if layout is not None:
+                self.load_grid_layout(layout)
+            if data_path is not None:
+                self.load_csv(data_path)
 
     def handle_key_press(self, event):
         """Handle key press events."""
@@ -152,7 +168,7 @@ class MainWindow(QMainWindow):
             old_grid.deleteLater()  # Schedule for deletion
             self.grid = None
 
-    def load_grid_layout(self, file_path: str):
+    def load_grid_layout(self, file_path: str) -> None:
         """Load a new grid layout from file."""
         self.clear_current_grid()
 
@@ -163,6 +179,51 @@ class MainWindow(QMainWindow):
         # Setup new scenes and timer
         self.grid.setup_scenes()
         self.grid.timer_set(self.next_simulation_step, step=self.animation_period)
+
+    def _load_grid_direct(self, grid: SimulationGrid) -> None:
+        """Programmatic counterpart to :meth:`load_grid_layout`.
+
+        Installs a pre-built :class:`~ssl_vista.ui.grid.SimulationGrid` as
+        the central widget without reading any file from disk.
+
+        Parameters
+        ----------
+        grid:
+            A fully constructed :class:`~ssl_vista.ui.grid.SimulationGrid`
+            (e.g. produced by :func:`~ssl_vista.ui.grid.load_grid_from_spec`).
+        """
+        self.clear_current_grid()
+        self.grid = grid
+        self.setCentralWidget(self.grid)
+        self.grid.setup_scenes()
+        self.grid.timer_set(self.next_simulation_step, step=self.animation_period)
+
+    def _load_sim_direct(self, sim_data: SimData, sim_settings: SimSettings) -> None:
+        """Programmatic counterpart to :meth:`process_csv`.
+
+        Injects pre-parsed simulation data (the same structures that
+        :func:`~ssl_simulator.utils.processing.load_sim` returns) without
+        requiring a CSV file on disk.
+
+        Parameters
+        ----------
+        sim_data:
+            Simulation variable arrays keyed by field name.
+            Must contain a ``"time"`` key with a sequence of timestamps.
+        sim_settings:
+            Scalar simulation parameters (``dt``, ``n_robots``, etc.).
+        """
+        if self.grid is None:
+            return
+        self.sim_data = sim_data
+        self.sim_settings = sim_settings
+        self.sim_time = self.sim_data["time"]
+        self.time_slider.setRange(0, len(self.sim_time) - 1)
+        self.time_slider.blockSignals(False)
+        self.grid.reset_scenes(self.sim_data, self.sim_settings)
+        self.reset_simulation()
+        if self.auto_play:
+            self.play_simulation()
 
     # ---------------------------------------------------------------
     # FILE LOADING METHODS

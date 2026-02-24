@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 from PyQt5.QtCore import QObject, Qt, QTimer, pyqtSignal
@@ -10,6 +13,9 @@ from ssl_vista.plotters import _BasePlotter
 from ssl_vista.plotters.registry import create_plotter_instance
 
 from .layout_schema import parse_layout_config
+
+if TYPE_CHECKING:
+    from ssl_vista.types import GridSpec
 
 
 class SimulationGridContext(QObject):
@@ -192,6 +198,53 @@ def load_grid_from_json(file_path: str | Path, parent=None) -> SimulationGrid:
 
         # Add to grid
         grid.add_plotter(plotter, position=plotter_data.position)
+
+    if CONFIG["DEBUG"]:
+        pass
+
+    return grid
+
+
+def load_grid_from_spec(spec: GridSpec, parent: object = None) -> SimulationGrid:
+    """Build a :class:`SimulationGrid` from a programmatic :class:`~ssl_vista.types.GridSpec`.
+
+    This is the programmatic counterpart to :func:`load_grid_from_json` — it
+    accepts a :class:`~ssl_vista.types.GridSpec` Python object rather than a
+    JSON file path, so no filesystem access is required.
+
+    Parameters
+    ----------
+    spec:
+        A :class:`~ssl_vista.types.GridSpec` describing the grid shape and each
+        plotter cell (by class object or registry name).
+    parent:
+        Optional parent widget.
+
+    Returns
+    -------
+    SimulationGrid
+        A fully configured :class:`SimulationGrid` instance ready to be used
+        as a central widget.
+    """
+    grid = SimulationGrid(parent=parent, shape=spec.shape)
+
+    for plotter_spec in spec.plotters:
+        if plotter_spec.plotter_cls is not None:
+            plotter = create_plotter_instance(
+                plotter_spec.plotter_cls,
+                context=grid.context,
+                **plotter_spec.kwargs,
+            )
+        else:
+            # plotter_type is guaranteed non-None by PlotterSpec.__post_init__
+            assert plotter_spec.plotter_type is not None  # noqa: S101
+            plotter = create_plotter_instance(
+                plotter_spec.plotter_type,
+                context=grid.context,
+                **plotter_spec.kwargs,
+            )
+
+        grid.add_plotter(plotter, position=plotter_spec.position)
 
     if CONFIG["DEBUG"]:
         pass
