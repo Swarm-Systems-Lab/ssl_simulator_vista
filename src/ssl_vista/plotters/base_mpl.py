@@ -8,39 +8,54 @@ from PyQt5 import QtCore, QtGui
 from ssl_vista import CONFIG
 
 from ._base_plotters import _BasePlotter
+from ._protected_attrs_mixin import ProtectedAttrsMixin
 
 
-class BaseMplPlotter(_BasePlotter):
+class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
     """
     Base class for Matplotlib-based plotters.
 
     Subclasses should:
         - define self.axes_config: dict specifying axes
+            e.g., {"main": {"position":[x0,y0,dx,dy], "projection":"3d"}}
         - implement init_artists(self)
         - implement update_artists(self, frame_data)
     """
 
+    # Attributes managed by the base class that should not be directly reassigned
+    _PROTECTED_ATTRS = frozenset(
+        ["axes", "artists", "line_configs", "_axes_config", "fig", "canvas"]
+    )
+
     def __init__(self, parent=None, context=None, figsize=(8, 6), dpi=100):
+        super().__init__()
         self.context = context
 
-        # -- To be defined by subclass !!
-        # e.g., {"main": {"position":[x0,y0,dx,dy], "projection":"3d"}}
-        self.axes_config = {}
-        # ----------------------------
-
-        self.line_configs = {}
         self.artists = {}
+        self.line_configs = {}
+
+        self._axes_config = {}
+        self._initialized = False
 
         self.figsize, self.dpi = figsize, dpi
         self.fig = plt.figure(figsize=figsize, dpi=dpi)
         self.axes = {}
-        self._initialized = False
 
         # Embed in Qt if parent provided
         self.canvas = FigureCanvas(self.fig)
         if parent:
             self.canvas.setParent(parent)
         self.set_widget(self.canvas)
+
+    @property
+    def axes_config(self):
+        return self._axes_config
+
+    @axes_config.setter
+    def axes_config(self, value):
+        if self._initialized:
+            raise RuntimeError("Cannot modify axes_config after scene initialization.")
+        self._axes_config.update(value)
 
     # ---------------------------------------------------------------
     # ABSTRACT METHODS (must be implemented)
@@ -113,8 +128,11 @@ class BaseMplPlotter(_BasePlotter):
             data = sim_data[cfg["var"]]
             if cfg["extract"]:
                 data = cfg["extract"](data)
-            for i, line in enumerate(self.artists[name]):
-                line.set_data(time[: idx + 1], data[: idx + 1, i])
+            if len(self.artists[name]) > 1:
+                for i, line in enumerate(self.artists[name]):
+                    line.set_data(time[: idx + 1], data[: idx + 1, i])
+            else:
+                self.artists[name][0].set_data(time[: idx + 1], data[: idx + 1])
 
     # ---------------------------------------------------------------
     # SETUP/RESET/UPDATE SCENE
