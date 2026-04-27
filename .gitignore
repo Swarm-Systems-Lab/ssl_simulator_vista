@@ -55,6 +55,8 @@ build/
 
 # Development tools
 .pytest_cache/
+.ruff_cache/
+.tox/
 .coverage
 htmlcov/
 cov.xml
@@ -73,7 +75,7 @@ external/
 
 ## Others
 /tmp
-/otuput
+/output
 
 _version.py
 
