@@ -1,9 +1,10 @@
 from pathlib import Path
+from struct import pack
 from typing import Annotated, Optional
 
 import typer
+from ssl_simulator.logging import LoggerManager
 
-from ssl_vista import CONFIG
 from ssl_vista.data import DataManager
 
 from .app import run_app
@@ -47,14 +48,17 @@ def run(
         "--auto-play",
         help="Automatically start the simulation upon loading (data file required)",
     ),
-    debug: bool = typer.Option(
-        False, "-dbg", "--debug", help="Enable debug mode for detailed logging"
+    log_level: str = typer.Option(
+        "INFO",
+        "-log",
+        "--log-level",
+        help="Logging level (DEBUG_VERBOSE, DEBUG, INFO, WARNING, ERROR)",
     ),
-    debug_info: bool = typer.Option(
-        False,
-        "-dbgi",
-        "--debug-info",
-        help="Enable debug information display in the application",
+    log_format: str = typer.Option(
+        "compact",
+        "-fmt",
+        "--log-format",
+        help="Logging format (simple, compact, standard, detailed)",
     ),
 ):
     """
@@ -67,10 +71,14 @@ def run(
       sslvista -l ./layouts/custom.json -data ./data/my_data.csv
     """
 
-    if debug:
-        CONFIG["DEBUG"] = debug
-    if debug_info:
-        CONFIG["DEBUG_INFO"] = debug_info
+    # --- Init logging based on debug flag ---
+    try:
+        LoggerManager().setup(
+            level=log_level, format_type=log_format, packages=["ssl_vista", "ssl_simulator"]
+        )
+    except ValueError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(code=1) from None
 
     # --- Handle listing layouts and samples ---
     if list_layouts_flag:

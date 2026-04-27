@@ -1,14 +1,17 @@
 __all__ = ["BaseMplPlotter"]
 
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5 import QtCore, QtGui
-
-from ssl_vista import CONFIG
+from ssl_simulator.logging import requires_log_level
 
 from ._base_plotters import _BasePlotter
 from ._protected_attrs_mixin import ProtectedAttrsMixin
+
+_logger = logging.getLogger(__name__)
 
 
 class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
@@ -84,7 +87,12 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
             extract: function or None, how to extract data from sim_data[var]
         """
         if name is None:
-            name = f"{var}_lines"
+            base_name = f"{axis}_{var}_lines"
+            name = base_name
+            counter = 1
+            while name in self.line_configs:
+                name = f"{base_name}_{counter}"
+                counter += 1
         self.line_configs[name] = {
             "axis": axis,
             "var": var,
@@ -105,7 +113,6 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
                 data = cfg["extract"](data)
             if cfg["shape"] is None:
                 cfg["shape"] = data.shape[1] if len(data.shape) > 1 else 1
-
             # Assume time axis is always present
             time = sim_data["time"]
             ax.set_xlim(time.min(), time.max())
@@ -143,9 +150,7 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
             self._setup_axes()
             self._initialized = True
             self.fig.canvas.draw_count = 0  # reset draw count
-
-            if CONFIG["DEBUG"]:
-                pass
+            _logger.debug(f"Scene setup complete. Axes: {list(self.axes.keys())}")
 
     def reset_scene(self, sim_data, sim_settings):
         """Reset the scene to its initial state."""
@@ -158,8 +163,9 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
         self._init_lines_from_config(sim_data)
         self.init_artists(sim_data, sim_settings)
         self.fig.canvas.draw_count = 0  # reset draw count
+        _logger.debug("Scene reset complete")
 
-        if CONFIG["DEBUG"]:
+        if _logger.isEnabledFor(logging.DEBUG):
             self._debug_artists()
 
     def update_all_scene_objects(self, sim_data, idx):
@@ -189,9 +195,7 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
 
             # Create axis with remaining kwargs (e.g., projection)
             self.axes[key] = self.fig.add_axes(rect, **cfg_copy)
-
-            if CONFIG.get("DEBUG", False):
-                pass
+            _logger.debug(f"Created axis '{key}' with rect={rect} and config={cfg_copy}")
 
     def _update_axes(self, shift=None, scale_factor=1.0):
         """Update axes positions for panning and zooming."""
@@ -206,9 +210,10 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
         self.fig.canvas.draw_idle()
 
     def _print_position_axes(self):
-        """Print current axes positions for debugging."""
-        for _key, ax in self.axes.items():
-            _ = ax.get_position().bounds
+        """Log current axes positions for debugging."""
+        for key, ax in self.axes.items():
+            bounds = ax.get_position().bounds
+            _logger.debug(f"Axis '{key}' position: {bounds}")
 
     # ---------------------------------------------------------------
     # KEY EVENT HANDLING
@@ -235,30 +240,23 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
     # DEBUG UTILITIES
     # ---------------------------------------------------------------
 
+    @requires_log_level(_logger, logging.DEBUG)
     def _debug_artists(self):
         """
-        Print all artists in each axis with their key and type.
+        Log all artists in each axis with their key and type.
         Useful to inspect plot elements during development.
         """
+        _logger.debug("=== Artist Debug Info ===")
+        _logger.debug(f"Total line configs: {len(self.line_configs)}")
+        for name, cfg in self.line_configs.items():
+            _logger.debug(f"  - {name}: axis={cfg['axis']}, var={cfg['var']}, shape={cfg['shape']}")
 
-        total_count = 0
+        _logger.debug(f"Total artists groups: {len(self.artists)}")
+        for name, artist_list in self.artists.items():
+            _logger.debug(f"  - {name}: {len(artist_list)} line(s)")
 
-        def count_and_print(artist, prefix=""):
-            """Recursively print and count artists."""
-            nonlocal total_count
-            if isinstance(artist, dict):
-                for k, v in artist.items():
-                    count_and_print(v, prefix=f"{prefix}[{k}]")
-            elif isinstance(artist, list):
-                for i, a in enumerate(artist):
-                    count_and_print(a, prefix=f"{prefix}[{i}]")
-            elif isinstance(artist, np.ndarray):
-                total_count += artist.size
-            else:
-                total_count += 1
-
-        for _ax_key, ax in self.axes.items():
-            group = ax.get_children()
-            if not group:
-                continue
-            count_and_print(group, prefix="    ")
+        _logger.debug(f"Total axes: {len(self.axes)}")
+        for key, ax in self.axes.items():
+            children = ax.get_children()
+            _logger.debug(f"  - Axis '{key}': {len(children)} children")
+        _logger.debug("=== End Artist Debug Info ===")

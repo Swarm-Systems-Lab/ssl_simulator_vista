@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import signal
 import sys
 from pathlib import Path
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
     from ssl_vista.types import GridSpec, SimData, SimSettings
     from ssl_vista.ui.grid import SimulationGrid
 
+_logger = logging.getLogger("ssl_vista")
 
 # ---------------------------------------------------------------------------
 # Overload signatures  (for static type-checkers / mypy --strict)
@@ -121,6 +123,15 @@ def run_app(**kwargs: Any) -> None:  # type: ignore[misc]
         Whether to start playback automatically once the window opens.
     """
     auto_play: bool = kwargs.pop("auto_play", False)
+
+    # Ensure root logger is initialized (only if run programmatically without CLI)
+    if not _logger.handlers:
+        from ssl_simulator.logging import LoggerManager
+
+        LoggerManager().setup(
+            level="INFO", format_type="compact", packages=["ssl_vista", "ssl_simulator"]
+        )
+        _logger.debug("Logging initialized (fallback from app.py)")
 
     app = QApplication(sys.argv)
     signal.signal(signal.SIGINT, signal.SIG_DFL)  # Restore default Ctrl+C handler
