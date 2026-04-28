@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -8,7 +9,6 @@ import numpy as np
 from PyQt5.QtCore import QObject, Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QSplitter, QVBoxLayout, QWidget
 
-from ssl_vista import CONFIG
 from ssl_vista.plotters import _BasePlotter
 from ssl_vista.plotters.registry import create_plotter_instance
 
@@ -16,6 +16,8 @@ from .layout_schema import parse_layout_config
 
 if TYPE_CHECKING:
     from ssl_vista.types import GridSpec
+
+_logger = logging.getLogger(__name__)
 
 
 class SimulationGridContext(QObject):
@@ -85,8 +87,7 @@ class SimulationGrid(QWidget):
                     if self._plotter_array[i, j] is None:
                         self._plotter_array[i, j] = plotter
                         self._splitter_rows[i].addWidget(plotter.get_widget())
-                        if CONFIG["DEBUG"]:
-                            pass
+                        _logger.debug(f"Added plotter at position ({i}, {j})")
                         return
             raise ValueError("No free position available in the grid.")
         else:
@@ -122,10 +123,25 @@ class SimulationGrid(QWidget):
                 plotter.setup_scene()
 
     def reset_scenes(self, sim_data, sim_settings):
-        """Reset all subplots (optional customization point)."""
+        """Reset all subplots and emit a single structured log record."""
         for plotter in self._plotter_array.flatten():
             if plotter is not None:
                 plotter.reset_scene(sim_data, sim_settings)
+
+        if _logger.isEnabledFor(logging.DEBUG):
+            snapshots = {}
+            rows, cols = self._plotter_array.shape
+            for r in range(rows):
+                for c in range(cols):
+                    plotter = self._plotter_array[r, c]
+                    if plotter is None:
+                        continue
+                    snapshots[f"({r},{c})"] = plotter.collect_scene_objects()
+
+            _logger.debug(
+                "grid scenes reset",
+                extra={"grid_shape": [rows, cols], "plotters": snapshots},
+            )
 
     def update_scenes(self, sim_data, idx):
         """Update each subplot with simulation data at timestep 'idx'."""
@@ -199,8 +215,9 @@ def load_grid_from_json(file_path: str | Path, parent=None) -> SimulationGrid:
         # Add to grid
         grid.add_plotter(plotter, position=plotter_data.position)
 
-    if CONFIG["DEBUG"]:
-        pass
+    _logger.debug(
+        f"Loaded grid layout from {file_path} with shape {shape} and {len(layout_config.plotters)} plotters."
+    )
 
     return grid
 
@@ -246,7 +263,8 @@ def load_grid_from_spec(spec: GridSpec, parent: object = None) -> SimulationGrid
 
         grid.add_plotter(plotter, position=plotter_spec.position)
 
-    if CONFIG["DEBUG"]:
-        pass
+    _logger.debug(
+        f"Loaded grid from spec with shape {spec.shape} and {len(spec.plotters)} plotters."
+    )
 
     return grid

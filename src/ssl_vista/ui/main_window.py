@@ -1,21 +1,21 @@
 from __future__ import annotations
 
+import logging
 import os
-import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from ssl_simulator.utils.processing import load_sim
 
-from ssl_vista import CONFIG
-
 from .grid import SimulationGrid, load_grid_from_json
 from .toolbars import SimulationToolbar
 
 if TYPE_CHECKING:
     from ssl_vista.types import SimData, SimSettings
+
+_logger = logging.getLogger(__name__)
 
 # For Wayland compatibility (e.g. Ubuntu)
 os.environ["QT_QPA_PLATFORM"] = "xcb"
@@ -247,9 +247,7 @@ class MainWindow(QMainWindow):
     def process_csv(self):
         """Process the loaded CSV data."""
         if self.sim_file_path is not None:
-            self.sim_data, self.sim_settings = load_sim(
-                self.sim_file_path, debug=CONFIG["DEBUG_INFO"]
-            )
+            self.sim_data, self.sim_settings = load_sim(self.sim_file_path)
             self.sim_time = self.sim_data["time"]
             self.time_slider.setRange(0, len(self.sim_time) - 1)
             self.time_slider.blockSignals(False)
@@ -303,7 +301,7 @@ class MainWindow(QMainWindow):
                 self.stop_simulation()
                 self.updated = True
             else:
-                pass
+                _logger.error("Current time index exceeds simulation time range.")
         else:
             self.stop_simulation()
 

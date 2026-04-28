@@ -16,9 +16,6 @@ class Config(dict):
 # Initialize the configuration dictionary
 CONFIG = Config(
     {
-        "DEBUG": False,
-        "DEBUG_INFO": False,
-        "WARNINGS": True,
         "GRAPHICS": {
             # Default robot trajectory parameters
             "ROBOT_TRAJECTORY_SIZE": 4.0,

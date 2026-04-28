@@ -85,6 +85,8 @@ def _build_main_window(auto_play: bool, **kwargs: Any) -> MainWindow:
     )
 
 
+# FIXME: mypy can't verify that kwargs are properly routed to the right MainWindow 
+#        constructor, but the overloads above should ensure type safety for callers.
 def run_app(**kwargs: Any) -> None:  # type: ignore[misc]
     """Launch the ssl_vista simulation viewer.
 
@@ -124,7 +126,7 @@ def run_app(**kwargs: Any) -> None:  # type: ignore[misc]
     """
     auto_play: bool = kwargs.pop("auto_play", False)
 
-    # Ensure root logger is initialized (only if run programmatically without CLI)
+    # Ensure logger is initialized (only if run programmatically without CLI)
     if not _logger.handlers:
         from ssl_simulator.logging import LoggerManager
 

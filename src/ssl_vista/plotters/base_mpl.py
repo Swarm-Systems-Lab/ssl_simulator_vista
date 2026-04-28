@@ -154,19 +154,13 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
 
     def reset_scene(self, sim_data, sim_settings):
         """Reset the scene to its initial state."""
-        # Clear all artists from the axes
-        for ax in self.axes.values():
+        for ax in self.axes.values():  # clear axes but keep them
             ax.cla()
             ax.grid(True)
 
-        # Reinitialize artists
         self._init_lines_from_config(sim_data)
         self.init_artists(sim_data, sim_settings)
         self.fig.canvas.draw_count = 0  # reset draw count
-        _logger.debug("Scene reset complete")
-
-        if _logger.isEnabledFor(logging.DEBUG):
-            self._debug_artists()
 
     def update_all_scene_objects(self, sim_data, idx):
         """Update all artists in the scene."""
@@ -239,24 +233,23 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
     # ---------------------------------------------------------------
     # DEBUG UTILITIES
     # ---------------------------------------------------------------
+    def collect_scene_objects(self, verbose: bool = False) -> dict:
+        """Return a structured snapshot of this plotter's matplotlib artists.
 
-    @requires_log_level(_logger, logging.DEBUG)
-    def _debug_artists(self):
+        Pure data — no logging side effects.
         """
-        Log all artists in each axis with their key and type.
-        Useful to inspect plot elements during development.
-        """
-        _logger.debug("=== Artist Debug Info ===")
-        _logger.debug(f"Total line configs: {len(self.line_configs)}")
-        for name, cfg in self.line_configs.items():
-            _logger.debug(f"  - {name}: axis={cfg['axis']}, var={cfg['var']}, shape={cfg['shape']}")
+        line_configs = {
+            name: {"axis": cfg["axis"], "var": cfg["var"], "shape": cfg["shape"]}
+            for name, cfg in self.line_configs.items()
+        }
 
-        _logger.debug(f"Total artists groups: {len(self.artists)}")
-        for name, artist_list in self.artists.items():
-            _logger.debug(f"  - {name}: {len(artist_list)} line(s)")
+        artists = {name: len(artist_list) for name, artist_list in self.artists.items()}
 
-        _logger.debug(f"Total axes: {len(self.axes)}")
-        for key, ax in self.axes.items():
-            children = ax.get_children()
-            _logger.debug(f"  - Axis '{key}': {len(children)} children")
-        _logger.debug("=== End Artist Debug Info ===")
+        axes = {key: len(ax.get_children()) for key, ax in self.axes.items()}
+
+        return {
+            "plotter": self.__class__.__name__,
+            "line_configs": line_configs,
+            "artists": artists,
+            "axes": axes,
+        }

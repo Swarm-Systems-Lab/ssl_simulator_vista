@@ -78,7 +78,6 @@ class Plotter3DAttitude(_BaseVisualPlotter):
             sim_data[self.label_rot], (None, None, 3, 3), "rotation matrix"
         )
         self.num_agents = data_rot.shape[1]
-        self.print_scene_objects()
         self.pvqt.reset_camera()
 
     # ------------------------------------------------------------------

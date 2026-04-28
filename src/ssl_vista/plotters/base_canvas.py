@@ -115,7 +115,6 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         """Reset the scene by clearing and reinitializing artists."""
         self._clear_artists()
         self.init_artists(sim_data, sim_settings)
-        self.print_scene_objects()
         self.pvqt.reset_camera()
 
     def update_all_scene_objects(self, sim_data, idx):

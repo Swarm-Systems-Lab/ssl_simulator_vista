@@ -1,14 +1,16 @@
 __all__ = ["_BasePlotter", "_BaseVisualPlotter"]
 
+import logging
+
 import numpy as np
 import pyvista as pv
 from PyQt5 import QtCore, QtGui
 from pyvistaqt import QtInteractor
 
-from ssl_vista import CONFIG
-
-from .pv_utils.debug import inspect_actor
+from .pv_utils.debug import _actor_snapshot
 from .pv_utils.scene_objects import SceneObject, SceneObjectBundle
+
+_logger = logging.getLogger(__name__)
 
 
 class _BasePlotter:
@@ -25,8 +27,9 @@ class _BasePlotter:
             self.widget.setFocusPolicy(QtCore.Qt.ClickFocus)
             self.widget.setFocus()
         except AttributeError:
-            if CONFIG["WARNINGS"]:
-                pass
+            _logger.warning(
+                f"Unable to set key event handlers on widget of type {type(self.widget).__name__}"
+            )
 
     def get_widget(self):
         """Return the Qt widget for layouts."""
@@ -61,6 +64,18 @@ class _BasePlotter:
     def keyReleaseEvent(self, event: QtGui.QKeyEvent):
         """Shadow all key releases to avoid default widget behavior."""
         event.accept()
+
+    # ---------------------------------------------------------------
+    # DIAGNOSTICS (can be overridden)
+    # ---------------------------------------------------------------
+    def collect_scene_objects(self, verbose: bool = False) -> dict:
+        """Return a structured snapshot of this plotter's contents.
+
+        Default implementation returns just the class name. Subclasses with
+        actual scene contents (PyVista actors, matplotlib artists, etc.)
+        should override to include them.
+        """
+        return {"plotter": self.__class__.__name__}
 
 
 class _BaseVisualPlotter(_BasePlotter):
@@ -217,15 +232,25 @@ class _BaseVisualPlotter(_BasePlotter):
         self.when_change_robot_focus(idx_new_focus, idx_prv_focus)
 
     # ---------------------------------------------------------------
-    # DEBUGGING
+    # DIAGNOSTICS
     # ---------------------------------------------------------------
-    def print_scene_objects(self, verbose=False):
-        """Print all scene objects."""
-        if CONFIG["DEBUG"]:
-            if not self.scene_objects:
-                return
+    def collect_scene_objects(self, verbose: bool = False) -> dict:
+        """Return a structured snapshot of this plotter's scene objects.
 
-            for _name, obj in self.scene_objects.items():
-                actor = obj.actor
-                if verbose:
-                    inspect_actor(actor)
+        Pure data — no logging side effects. The caller decides whether and
+        how to log it.
+        """
+        objects = {}
+        for name, obj in self.scene_objects.items():
+            entry = {
+                "mesh": type(obj.mesh).__name__,
+                "actor": type(obj.actor).__name__,
+            }
+            if verbose:
+                entry["snapshot"] = _actor_snapshot(obj.actor)
+            objects[name] = entry
+
+        return {
+            "plotter": self.__class__.__name__,
+            "objects": objects,
+        }
