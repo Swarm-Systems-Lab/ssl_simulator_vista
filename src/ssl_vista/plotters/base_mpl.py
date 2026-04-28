@@ -14,6 +14,23 @@ from ._protected_attrs_mixin import ProtectedAttrsMixin
 _logger = logging.getLogger(__name__)
 
 
+def _expand_limits(current, new_min, new_max, pad_frac=0.05, min_pad=1e-6):
+    """Return limits that cover ``current`` and ``[new_min, new_max]``.
+
+    ``current`` is either None (no prior limits) or a (lo, hi) tuple. Padding
+    is applied as a fraction of the data range, with ``min_pad`` as a floor
+    so flat data still gets a visible window.
+    """
+    span = max(new_max - new_min, min_pad)
+    pad = span * pad_frac
+    lo, hi = new_min - pad, new_max + pad
+    if current is not None:
+        cur_lo, cur_hi = current
+        lo = min(lo, cur_lo)
+        hi = max(hi, cur_hi)
+    return lo, hi
+
+
 class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
     """
     Base class for Matplotlib-based plotters.
@@ -72,9 +89,8 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
         raise NotImplementedError
 
     # ---------------------------------------------------------------
-    # HELPER METHODS
+    # API METHODS
     # ---------------------------------------------------------------
-
     def register_lines(self, axis, var, name=None, shape=None, units="", extract=None, **kw_style):
         """
         Register a group of lines to be plotted and updated.
@@ -102,10 +118,23 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
             "style": kw_style,
         }
 
+    # ---------------------------------------------------------------
+    # HELPER METHODS
+    # ---------------------------------------------------------------
     def _init_lines_from_config(self, sim_data):
+        """Initialize all registered lines and set axis labels/limits.
+
+        When multiple line groups share an axis, y-limits accumulate so every
+        line stays in view. x-limits use the time vector and are uniform.
         """
-        Initialize all registered lines and set axis labels/limits.
-        """
+        time = sim_data["time"]
+        t_min, t_max = float(time.min()), float(time.max())
+
+        # Track which axes we've already touched in this call so we know whether
+        # to seed limits or expand them. ax.get_ylim() can't tell us "untouched"
+        # because matplotlib seeds defaults eagerly.
+        seen_axes: set[str] = set()
+
         for name, cfg in self.line_configs.items():
             ax = self.axes[cfg["axis"]]
             data = sim_data[cfg["var"]]
@@ -113,18 +142,42 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
                 data = cfg["extract"](data)
             if cfg["shape"] is None:
                 cfg["shape"] = data.shape[1] if len(data.shape) > 1 else 1
-            # Assume time axis is always present
-            time = sim_data["time"]
-            ax.set_xlim(time.min(), time.max())
-            ax.set_ylim(data.min() * 1.1, data.max() * 1.1)
-            ax.set_xlabel(r"$t$ [T]")
-            ax.set_ylabel(f"{cfg['var']} [{cfg['units']}]")
+
+            d_min, d_max = float(data.min()), float(data.max())
+
+            if cfg["axis"] not in seen_axes:
+                ax.set_xlim(t_min, t_max)
+                y_lo, y_hi = _expand_limits(None, d_min, d_max)
+                ax.set_xlabel(r"$t$ [T]")
+                ax.set_ylabel(f"{cfg['var']} [{cfg['units']}]")
+                seen_axes.add(cfg["axis"])
+            else:
+                y_lo, y_hi = _expand_limits(ax.get_ylim(), d_min, d_max)
+                # Append to ylabel so multi-variable axes are self-documenting
+                existing_label = ax.get_ylabel()
+                new_label = f"{cfg['var']} [{cfg['units']}]"
+                if new_label not in existing_label:
+                    ax.set_ylabel(f"{existing_label}, {new_label}")
+
+            ax.set_ylim(y_lo, y_hi)
+
             self.artists[name] = []
             for i in range(cfg["shape"]):
                 style = {k: v[i] if isinstance(v, list) else v for k, v in cfg["style"].items()}
                 (line,) = ax.plot([], [], **style)
                 self.artists[name].append(line)
             ax.legend()
+
+            _logger.debug_verbose(
+                "axis limits configured",
+                extra={
+                    "axis": cfg["axis"],
+                    "line_group": name,
+                    "xlim": [t_min, t_max],
+                    "ylim": [y_lo, y_hi],
+                    "data_range": [d_min, d_max],
+                },
+            )
 
     def _update_lines(self, sim_data, idx):
         """
@@ -203,11 +256,9 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
             ax.set_position(new_pos)
         self.fig.canvas.draw_idle()
 
-    def _print_position_axes(self):
-        """Log current axes positions for debugging."""
-        for key, ax in self.axes.items():
-            bounds = ax.get_position().bounds
-            _logger.debug(f"Axis '{key}' position: {bounds}")
+    def _collect_position_axes(self):
+        """Log current axes positions at DEBUG level."""
+        return {key: list(ax.get_position().bounds) for key, ax in self.axes.items()}
 
     # ---------------------------------------------------------------
     # KEY EVENT HANDLING
@@ -226,7 +277,10 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
         elif event.key() == QtCore.Qt.Key_Down:
             self._update_axes(shift=[0, -0.01])
         elif event.key() == QtCore.Qt.Key_I:
-            self._print_position_axes()
+            _logger.debug(
+                f"{self.__class__.__name__} axes",
+                extra={"positions": self._collect_position_axes()},
+            )
 
         event.accept()  # prevent further processing
 
