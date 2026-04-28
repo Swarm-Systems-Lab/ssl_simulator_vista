@@ -46,7 +46,6 @@ See [Usage](usage.md) for end-to-end workflows and [Architecture](architecture.m
 - [Plotter development](plotter-development.md): extending with custom plotters
 - [API reference](api.md): module-level API docs
 - [Troubleshooting](troubleshooting.md): common runtime issues
-- [Contributing](contributing.md): contribution workflow
 
 ## Development commands
 
@@ -57,5 +56,3 @@ just typecheck
 just docs
 just docs-build
 ```
-
-For full command details, see [Golden path](golden-path.md).

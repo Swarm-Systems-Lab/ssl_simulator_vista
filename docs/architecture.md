@@ -91,8 +91,4 @@ These abstractions manage mesh + actor lifecycle and bundle hierarchical scene e
 
 Global runtime flags live in `src/ssl_vista/config.py`:
 
-- `DEBUG`
-- `DEBUG_INFO`
 - graphics constants under `GRAPHICS`
-
-CLI flags (`--debug`, `--debug-info`) toggle these values at runtime.

@@ -31,8 +31,6 @@ Primary options:
 - `--list-layouts` / `-ll`: print built-in layout names and exit
 - `--list-data` / `-ld`: print bundled sample data names and exit
 - `--auto-play` / `-ap`: start playback automatically after data load
-- `--debug` / `-dbg`: enable debug mode
-- `--debug-info` / `-dbgi`: enable verbose simulator data info
 
 ## Typical workflows
 
