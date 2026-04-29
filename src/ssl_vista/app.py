@@ -85,7 +85,7 @@ def _build_main_window(auto_play: bool, **kwargs: Any) -> MainWindow:
     )
 
 
-# FIXME: mypy can't verify that kwargs are properly routed to the right MainWindow 
+# FIXME: mypy can't verify that kwargs are properly routed to the right MainWindow
 #        constructor, but the overloads above should ensure type safety for callers.
 def run_app(**kwargs: Any) -> None:  # type: ignore[misc]
     """Launch the ssl_vista simulation viewer.

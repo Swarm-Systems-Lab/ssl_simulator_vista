@@ -100,6 +100,9 @@ class Plotter3DAttitude(_BaseVisualPlotter):
                 f"sim_data must contain '{self.label_rot}' key for attitude visualization"
             )
 
+        # FIXME: this will be inefficient, data should come formatted.
+        #        We need a better way to handle dimensionality with multiple robots and
+        #        timesteps without forcing users to pre-format data in a specific way.
         data_rot = check_and_parse_dimensions(
             sim_data[self.label_rot], (None, None, 3, 3), "rotation matrix"
         )

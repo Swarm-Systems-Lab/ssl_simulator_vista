@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5 import QtCore, QtGui
-from ssl_simulator.logging import requires_log_level
+
+from ssl_vista.plotters.mpl_utils.scales import apply_scale
 
 from ._base_plotters import _BasePlotter
 from ._protected_attrs_mixin import ProtectedAttrsMixin
@@ -194,6 +195,20 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
             else:
                 self.artists[name][0].set_data(time[: idx + 1], data[: idx + 1])
 
+    def _reapply_scales(self):
+        """(Re-)apply xscale/yscale from axes_config to all axes.
+
+        Needed after ax.cla(), which resets locators/formatters.
+        """
+        for key, cfg in self.axes_config.items():
+            ax = self.axes[key]
+            xscale = cfg.get("xscale")
+            yscale = cfg.get("yscale")
+            if xscale:
+                apply_scale(ax, "x", xscale)
+            if yscale:
+                apply_scale(ax, "y", yscale)
+
     # ---------------------------------------------------------------
     # SETUP/RESET/UPDATE SCENE
     # ---------------------------------------------------------------
@@ -211,6 +226,9 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
             ax.cla()
             ax.grid(True)
 
+        # cla() resets locators/formatters; re-apply axis scales.
+        self._reapply_scales()
+
         self._init_lines_from_config(sim_data)
         self.init_artists(sim_data, sim_settings)
         self.fig.canvas.draw_count = 0  # reset draw count
@@ -227,22 +245,30 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
     def _setup_axes(self):
         """Create axes based on self.axes_config."""
         for key, cfg in self.axes_config.items():
-            cfg_copy = cfg.copy()  # avoid modifying the original config
+            cfg_copy = cfg.copy()
 
-            # Extract rect/position
-            rect = None
-            if "position" in cfg_copy:
-                rect = cfg_copy.pop("position")
-            if "rect" in cfg_copy:
-                if rect is not None:
-                    raise ValueError(f"Axis '{key}': Cannot provide both 'rect' and 'position'.")
-                rect = cfg_copy.pop("rect")
+            rect = cfg_copy.pop("position", None) or cfg_copy.pop("rect", None)
             if rect is None:
-                raise ValueError(f"Axis '{key}': Must provide either 'position' or 'rect'.")
+                raise ValueError(f"Axis '{key}': must provide 'position' or 'rect'.")
 
-            # Create axis with remaining kwargs (e.g., projection)
+            # Strip scale specs; they're handled by _reapply_scales.
+            cfg_copy.pop("xscale", None)
+            cfg_copy.pop("yscale", None)
+
             self.axes[key] = self.fig.add_axes(rect, **cfg_copy)
-            _logger.debug(f"Created axis '{key}' with rect={rect} and config={cfg_copy}")
+
+        self._reapply_scales()
+
+        _logger.debug_verbose(
+            "axes created",
+            extra={
+                "axes": list(self.axes.keys()),
+                "scales": {
+                    k: {"xscale": v.get("xscale"), "yscale": v.get("yscale")}
+                    for k, v in self.axes_config.items()
+                },
+            },
+        )
 
     def _update_axes(self, shift=None, scale_factor=1.0):
         """Update axes positions for panning and zooming."""
