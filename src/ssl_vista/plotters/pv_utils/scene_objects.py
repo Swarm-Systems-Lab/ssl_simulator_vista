@@ -592,6 +592,31 @@ class Vector(SceneObject):
         arrow = pv.Arrow(start=origin, direction=direction, scale=self.scale)
         self.update_mesh(arrow)
 
+class VectorField(SceneObject):
+    """Vector field rendered via PyVista glyphs.
+
+    Single mesh + single actor, transformed on the GPU. Suitable for
+    hundreds-to-thousands of vectors at interactive frame rates.
+    """
+
+    def __init__(self, origins: np.ndarray, vectors: np.ndarray, scale: float = 1.0, **style):
+        self.scale = scale
+        self._template = pv.Arrow()
+        self._poly = pv.PolyData(np.asarray(origins, dtype=float))
+        self._poly["vectors"] = np.asarray(vectors, dtype=float) * scale
+        self._poly.set_active_vectors("vectors")
+        glyph_mesh = self._poly.glyph(
+            orient="vectors", scale="vectors", factor=1.0, geom=self._template,
+        )
+        super().__init__(mesh=glyph_mesh, **style)
+
+    def update_vectors(self, vectors: np.ndarray):
+        self._poly["vectors"] = np.asarray(vectors, dtype=float) * self.scale
+        self._poly.set_active_vectors("vectors")
+        new_glyphs = self._poly.glyph(
+            orient="vectors", scale="vectors", factor=1.0, geom=self._template,
+        )
+        self.mesh.shallow_copy(new_glyphs)
 
 # ------------------------------------------------------------------
 # COMPOSITE/BUNDLE SCENE OBJECTS
@@ -831,73 +856,3 @@ class SphereGrid(SceneObjectBundle):
             self.add_child("lon_mid", SceneObject(lon_mid), color="black", **kw_markers_main)
 
         self.add_child("sphere", SceneObject(sphere), color="lightgray", opacity=0.05)
-
-
-class VectorField(SceneObjectBundle):
-    """
-    A bundle representing a vector field using arrows.
-    Each arrow represents a vector at a specific position.
-    """
-
-    def __init__(
-        self, vectors: np.ndarray, origins: np.ndarray = None, scale: float = 1.0, **kwargs
-    ):
-        """
-        Create a vector field bundle.
-
-        Parameters
-        ----------
-        vectors : np.ndarray
-            An array of shape (N, 3) representing the vectors.
-        origins : np.ndarray, optional
-            An array of shape (N, 3) representing the origins of the vectors.
-            If None, all vectors originate from the origin (0, 0, 0).
-        scale : float
-            A scaling factor for the arrows.
-        **kwargs : dict
-            Additional styling arguments for the arrows.
-        """
-        super().__init__()
-        self.scale = scale
-
-        if origins is None:
-            origins = np.zeros_like(vectors)
-
-        vectors = np.atleast_2d(vectors)
-        origins = np.atleast_2d(origins)
-
-        if vectors.shape != origins.shape:
-            raise ValueError("Vectors and origins must have the same shape.")
-
-        for i, (origin, vector) in enumerate(zip(origins, vectors, strict=False)):
-            arrow = pv.Arrow(start=origin, direction=vector, scale=self.scale)
-            self.add_child(f"arrow_{i}", SceneObject(mesh=arrow), **kwargs)
-
-    def update_vectors(self, vectors: np.ndarray, origins: np.ndarray = None):
-        """
-        Update the vectors and origins of the vector field.
-
-        Parameters
-        ----------
-        vectors : np.ndarray
-            An array of shape (N, 3) representing the new vectors.
-        origins : np.ndarray, optional
-            An array of shape (N, 3) representing the new origins of the vectors.
-            If None, the origins remain unchanged.
-        """
-        if origins is None:
-            origins = np.zeros_like(vectors)
-
-        vectors = np.atleast_2d(vectors)
-        origins = np.atleast_2d(origins)
-
-        if vectors.shape != origins.shape:
-            raise ValueError("Vectors and origins must have the same shape.")
-
-        for i, (origin, vector) in enumerate(zip(origins, vectors, strict=False)):
-            arrow = pv.Arrow(start=origin, direction=vector, scale=self.scale)
-            child_name = f"arrow_{i}"
-            if child_name in self.children:
-                self.get_child(child_name).update_mesh(arrow)
-            else:
-                self.add_child(child_name, SceneObject(mesh=arrow))
