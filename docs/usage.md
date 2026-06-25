@@ -11,7 +11,7 @@ This page covers practical use of `ssl_vista`: listing available resources, laun
 For local development:
 
 ```bash
-git clone https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista
+git clone https://github.com/Swarm-Systems-Lab/ssl_simulator_vista
 cd ssl_vista
 just setup
 ```

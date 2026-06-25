@@ -14,7 +14,7 @@ It combines PyVista plotters (2D/3D robot views) and optional Matplotlib plotter
 
 ```bash
 # Clone and enter the repository
-git clone https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista
+git clone https://github.com/Swarm-Systems-Lab/ssl_simulator_vista
 cd ssl_vista
 
 # Setup development environment

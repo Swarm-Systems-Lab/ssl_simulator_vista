@@ -1,9 +1,9 @@
 site_name: ssl_vista
-site_description: "⚠️ Warning: This project is a work in progress and uses Generative AI for both documentation and code generation. A Qt-based visualization app"
-site_author: Jesús Bautista Villar
-copyright: Copyright &copy; 2024 Jesús Bautista Villar
+site_description: "⚠️ Warning: Documentation is work in progress."
+site_author: Jesus Bautista Villar
+copyright: Copyright &copy; 2024 Jesus Bautista Villar
 
-repo_url: https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista
+repo_url: https://github.com/Swarm-Systems-Lab/ssl_simulator_vista
 
 theme:
   name: material

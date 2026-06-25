@@ -592,6 +592,7 @@ class Vector(SceneObject):
         arrow = pv.Arrow(start=origin, direction=direction, scale=self.scale)
         self.update_mesh(arrow)
 
+
 class VectorField(SceneObject):
     """Vector field rendered via PyVista glyphs.
 
@@ -606,7 +607,10 @@ class VectorField(SceneObject):
         self._poly["vectors"] = np.asarray(vectors, dtype=float) * scale
         self._poly.set_active_vectors("vectors")
         glyph_mesh = self._poly.glyph(
-            orient="vectors", scale="vectors", factor=1.0, geom=self._template,
+            orient="vectors",
+            scale="vectors",
+            factor=1.0,
+            geom=self._template,
         )
         super().__init__(mesh=glyph_mesh, **style)
 
@@ -614,9 +618,13 @@ class VectorField(SceneObject):
         self._poly["vectors"] = np.asarray(vectors, dtype=float) * self.scale
         self._poly.set_active_vectors("vectors")
         new_glyphs = self._poly.glyph(
-            orient="vectors", scale="vectors", factor=1.0, geom=self._template,
+            orient="vectors",
+            scale="vectors",
+            factor=1.0,
+            geom=self._template,
         )
         self.mesh.shallow_copy(new_glyphs)
+
 
 # ------------------------------------------------------------------
 # COMPOSITE/BUNDLE SCENE OBJECTS

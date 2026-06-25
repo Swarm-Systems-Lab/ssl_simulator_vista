@@ -2,12 +2,12 @@
 _commit: 5ca24dd
 _src_path: ../ssl_py_template
 author_email: jesbauti20@gmail.com
-author_name: Jesús Bautista Villar
+author_name: Jesus Bautista Villar
 description: A Qt-based visualization app
 include_docs: true
 include_examples: true
 license: MIT
 package_name: ssl_vista
 project_name: ssl_vista
-repo_url: https://gitea.lyapunov.local/Swarm-Systems-Lab/ssl_simulator_vista
+repo_url: https://github.com/Swarm-Systems-Lab/ssl_simulator_vista
 use_docker: true
