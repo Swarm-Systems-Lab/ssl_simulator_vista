@@ -9,7 +9,9 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from ssl_simulator.utils.processing import load_sim
 
+from .export import ExportManager
 from .grid import SimulationGrid, load_grid_from_json
+from .icons import make_icon
 from .toolbars import SimulationToolbar
 
 if TYPE_CHECKING:
@@ -74,6 +76,11 @@ class MainWindow(QMainWindow):
         self.simulation_toolbar.time_slider.valueChanged.connect(self.update_time)
         self.simulation_toolbar.time_slider.sliderPressed.connect(self.slider_pressed)
         self.simulation_toolbar.time_slider.blockSignals(True)
+        self.simulation_toolbar.screenshot_action.triggered.connect(self._on_screenshot)
+        self.simulation_toolbar.record_action.triggered.connect(self._on_record_toggle)
+
+        # --- Export (screenshot / recording) ---
+        self.export_manager = ExportManager(self, lambda: self.grid)
 
         # --- Initial grid ---
         self.grid = None
@@ -342,14 +349,35 @@ class MainWindow(QMainWindow):
             if self.current_time_index < len(self.sim_time) - 1:
                 self.grid.update_scenes(self.sim_data, self.current_time_index)
                 self.updated = True
+                self.export_manager.capture_frame()
             elif self.current_time_index == len(self.sim_time) - 1:
                 self.grid.update_scenes(self.sim_data, self.current_time_index)
+                self.export_manager.capture_frame()
                 self.stop_simulation()
                 self.updated = True
             else:
                 _logger.error("Current time index exceeds simulation time range.")
         else:
             self.stop_simulation()
+
+    # ---------------------------------------------------------------
+    # EXPORT METHODS
+    # ---------------------------------------------------------------
+    def _on_screenshot(self):
+        self.export_manager.take_screenshot()
+
+    def _on_record_toggle(self):
+        action = self.simulation_toolbar.record_action
+        if self.export_manager.is_recording:
+            self.export_manager.stop_recording()
+            action.setIcon(make_icon("record"))
+            action.setText("Record")
+        else:
+            default_fps = max(1, 1000 // self.animation_period)
+            started = self.export_manager.start_recording(default_fps)
+            if started:
+                action.setIcon(make_icon("stop_rec"))
+                action.setText("Stop Rec")
 
     def closeEvent(self, event):
         """Handle the close event to stop all timers and clean up."""

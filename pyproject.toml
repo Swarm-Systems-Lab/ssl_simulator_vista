@@ -26,9 +26,15 @@ dependencies = [
     "PyQt5>=5.15.0",
     "typer",
     "pydantic>=2.8",
+    "imageio>=2.34",
+    "pillow>=10.0",
 ]
 
 [project.optional-dependencies]
+# MP4 / WebM recording (GIF works without this)
+video = [
+    "imageio-ffmpeg>=0.4",
+]
 # Developer default: everything needed to run tox/just locally
 dev = [
     "tox>=4.18",
