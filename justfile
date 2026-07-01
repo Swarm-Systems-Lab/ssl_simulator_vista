@@ -50,6 +50,10 @@ security:
 # Testing
 # ============================================================================
 
+# Run the app with an example preset
+run:
+    uv run sslvista -l 3d_canvas -data data_3d_test
+
 # Run all tests with tox (recommended)
 test:
     uv run tox -e tests

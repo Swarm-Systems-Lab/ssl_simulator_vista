@@ -78,9 +78,11 @@ def _build_main_window(auto_play: bool, **kwargs: Any) -> MainWindow:
         )
 
     # File-based path (original behaviour).
+    layout = kwargs.pop("layout")
+    data_path = kwargs.pop("data_path")
     return MainWindow(
-        layout=str(kwargs.pop("layout")),
-        data_path=str(kwargs.pop("data_path")),
+        layout=str(layout) if layout is not None else None,
+        data_path=str(data_path) if data_path is not None else None,
         auto_play=auto_play,
     )
 

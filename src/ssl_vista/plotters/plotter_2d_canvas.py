@@ -40,6 +40,7 @@ class Plotter2DCanvas(BaseCanvasPlotter):
     # ------------------------------------------------------------------
     def init_artists(self, sim_data, sim_settings):
         """Initialize robots, trajectories, and vectors."""
+        self.robot_objs.clear()
         self._check_labels(sim_data)
         self._check_data_shapes(sim_data)
 

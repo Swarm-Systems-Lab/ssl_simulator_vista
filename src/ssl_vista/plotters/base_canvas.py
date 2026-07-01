@@ -65,9 +65,9 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
 
     def _clear_artists(self):
         """Remove all artists from the scene."""
-        for obj_name, _obj in self.scene_objects.items():
+        for obj_name in list(self.scene_objects):
             self.remove_scene_object(obj_name)
-        self.scene_objects.clear()
+        self._robot_objs.clear()
 
     # ---------------------------------------------------------------
     # CANVAS HELPER METHODS

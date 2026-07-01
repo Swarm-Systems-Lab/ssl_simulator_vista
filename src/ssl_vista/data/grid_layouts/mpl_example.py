@@ -17,7 +17,7 @@ class PlotterMplExample(BaseMplPlotter):
         self.axes_config = {"main": {"position": [0.1, 0.1, 0.8, 0.8]}}
 
     def init_artists(self, sim_data, sim_settings):
-        self.artists = {}
+        self.artists.clear()
 
         # Extract the first element in sim_data that is not "time"
         self.n_robots = next(value for key, value in sim_data.items() if key != "time").shape[1]

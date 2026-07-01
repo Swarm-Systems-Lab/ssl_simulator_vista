@@ -81,6 +81,7 @@ class MainWindow(QMainWindow):
         # --- Simulation flags and data ---
         self.playing = False
         self.updated = False
+        self.sim_file_path = None
         self.sim_time = None
         self.sim_data = None
         self.sim_settings = None
@@ -169,7 +170,7 @@ class MainWindow(QMainWindow):
             self.grid = None
 
     def load_grid_layout(self, file_path: str) -> None:
-        """Load a new grid layout from file."""
+        """Load a new grid layout from file, then reload any active CSV into it."""
         self.clear_current_grid()
 
         # Read layout info and set as central widget
@@ -179,6 +180,10 @@ class MainWindow(QMainWindow):
         # Setup new scenes and timer
         self.grid.setup_scenes()
         self.grid.timer_set(self.next_simulation_step, step=self.animation_period)
+
+        # Re-feed existing data into the new layout (error is shown to user on mismatch)
+        if self.sim_file_path is not None:
+            self.process_csv()
 
     def _load_grid_direct(self, grid: SimulationGrid) -> None:
         """Programmatic counterpart to :meth:`load_grid_layout`.
@@ -245,8 +250,16 @@ class MainWindow(QMainWindow):
             self.process_csv()
 
     def process_csv(self):
-        """Process the loaded CSV data."""
-        if self.sim_file_path is not None:
+        """Process the loaded CSV data, rolling back on incompatibility."""
+        if self.sim_file_path is None:
+            return
+
+        # Snapshot current state so we can restore it if the new data is incompatible.
+        prev_data = self.sim_data
+        prev_settings = self.sim_settings
+        prev_time = self.sim_time
+
+        try:
             self.sim_data, self.sim_settings = load_sim(self.sim_file_path)
             self.sim_time = self.sim_data["time"]
             self.time_slider.setRange(0, len(self.sim_time) - 1)
@@ -255,20 +268,49 @@ class MainWindow(QMainWindow):
             self.reset_simulation()
             if self.auto_play:
                 self.play_simulation()
+        except Exception as exc:
+            # Roll back data state.
+            self.sim_data = prev_data
+            self.sim_settings = prev_settings
+            self.sim_time = prev_time
+            if prev_time is not None:
+                self.time_slider.setRange(0, len(prev_time) - 1)
+            _logger.error("CSV load failed: %s", exc)
+
+            # Re-initialise plotters with the previous data so they are in a
+            # consistent state — reset_scenes may have partially run before
+            # failing, leaving some plotters cleared but not re-initialised.
+            if prev_data is not None:
+                try:
+                    self.grid.reset_scenes(prev_data, prev_settings or {})
+                    self.reset_simulation()
+                except Exception:
+                    # Rollback also failed — clear data so replay can't crash.
+                    self.sim_data = None
+                    self.sim_settings = None
+                    self.sim_time = None
+
+            QMessageBox.warning(
+                self,
+                "Incompatible Data",
+                f"The selected file is not compatible with the current layout:\n\n{exc}",
+            )
 
     # ---------------------------------------------------------------
     # SIMULATION CONTROL METHODS
     # ---------------------------------------------------------------
     def play_simulation(self):
         """Start playing the simulation."""
+        if self.sim_data is None:
+            return
         self.playing = True
         self.grid.timer_start()
-        # Placeholder for play logic
 
     def stop_simulation(self):
         """Stop the simulation."""
         self.playing = False
-        self.grid.timer_stop()
+        if self.grid is not None:
+            self.grid.timer_stop()
 
     def reset_simulation(self):
         """Reset the simulation to the beginning."""
@@ -278,11 +320,15 @@ class MainWindow(QMainWindow):
 
     def next_simulation_step(self, *args):
         """Advance the simulation by one time step."""
+        if self.sim_data is None:
+            return
         self.time_slider.setValue(min(self.time_slider.value() + 1, self.time_slider.maximum()))
         QApplication.processEvents()
 
     def update_time(self, value):
         """Update the simulation to the specified time index."""
+        if self.sim_data is None:
+            return
         if value != self.current_time_index:
             self.updated = False
         self.current_time_index = value

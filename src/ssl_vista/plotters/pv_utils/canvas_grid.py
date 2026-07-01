@@ -98,16 +98,22 @@ class CanvasGrid:
         Updates the center of the grid and adjusts the mesh accordingly.
 
         Args:
-            new_center (np.ndarray): The new center coordinates.
+            new_center (np.ndarray): The new center coordinates (any shape; first
+                ``dimension`` elements are used).
         """
-        self.center = new_center
+        arr = np.asarray(new_center, dtype=float).reshape(-1)
 
         if self.dimension == 2:
             # Translate the 2D mesh
+            self.center = arr[:2]
             translation = self.center - self.mesh.center[:2]
             self.mesh.points[:, :2] += translation
         else:
-            # Translate the 3D mesh
+            # Translate the 3D mesh; pad to 3 elements if a 2D centroid was supplied
+            center3 = np.zeros(3)
+            n = min(3, len(arr))
+            center3[:n] = arr[:n]
+            self.center = center3
             translation = self.center - self.mesh.center
             self.mesh.points += translation
 

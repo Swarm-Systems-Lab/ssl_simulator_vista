@@ -435,8 +435,10 @@ class Icon2D(SceneObject):
         if centroid is None:
             translation = np.zeros(3)
         else:
-            # compute translation vector (target centroid - original centroid)
-            centroid = np.hstack([np.asarray(centroid), 0])
+            # Always take first 2 elements so 3-D position data passed by mistake
+            # doesn't produce a (4,) vector that mismatches the (3,) default_centroid.
+            xy = np.asarray(centroid).reshape(-1)[:2]
+            centroid = np.hstack([xy, 0])
             translation = centroid - self.default_centroid
 
         if heading is None:
