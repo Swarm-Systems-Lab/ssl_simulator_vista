@@ -1,13 +1,19 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: 5ca24dd
-_src_path: ../ssl_py_template
+_commit: 51224a5
+_src_path: gh:Swarm-Systems-Lab/ssl_py_template
 author_email: jesbauti20@gmail.com
 author_name: Jesus Bautista Villar
 description: A Qt-based visualization app
+include_ci: true
 include_docs: true
-include_examples: true
+include_lint: true
+include_pre_commit: true
+include_security: true
+include_tests: true
+include_typecheck: true
 license: MIT
 package_name: ssl_vista
+project_kind: package
 project_name: ssl_vista
 repo_url: https://github.com/Swarm-Systems-Lab/ssl_simulator_vista
-use_docker: true
+use_docker: false
