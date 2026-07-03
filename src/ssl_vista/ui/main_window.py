@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
-from ssl_simulator.utils.processing import load_sim
+from ssl_simulator.utils.processing import load_sim  # type: ignore[import-untyped]
 
 from .export import ExportManager
 from .grid import SimulationGrid, load_grid_from_json
@@ -47,21 +47,20 @@ class MainWindow(QMainWindow):
 
         # --- Set initial window size and position ---
         screen = QApplication.primaryScreen()
-        screen_geometry = screen.availableGeometry()  # Excludes taskbar/dock
-        screen_width = screen_geometry.width()
-        screen_height = screen_geometry.height()
-
-        width = int(screen_width * width_ratio)
-        height = int(screen_height * height_ratio)
-        x = (screen_width - width) // 2
-        y = (screen_height - height) // 2
-
-        self.setGeometry(x, y, width, height)
+        if screen is not None:
+            screen_geometry = screen.availableGeometry()
+            screen_width = screen_geometry.width()
+            screen_height = screen_geometry.height()
+            width = int(screen_width * width_ratio)
+            height = int(screen_height * height_ratio)
+            x = (screen_width - width) // 2
+            y = (screen_height - height) // 2
+            self.setGeometry(x, y, width, height)
 
         # --- Toolbar ---
         self.simulation_toolbar = SimulationToolbar(self)
         self.addToolBar(self.simulation_toolbar)
-        self.simulation_toolbar.setFocusPolicy(Qt.StrongFocus)
+        self.simulation_toolbar.setFocusPolicy(Qt.FocusPolicy.StrongFocus)  # type: ignore[attr-defined]
 
         # Connect toolbar actions
         self.time_slider = self.simulation_toolbar.time_slider
@@ -78,12 +77,13 @@ class MainWindow(QMainWindow):
         self.simulation_toolbar.time_slider.blockSignals(True)
         self.simulation_toolbar.screenshot_action.triggered.connect(self._on_screenshot)
         self.simulation_toolbar.record_action.triggered.connect(self._on_record_toggle)
+        self.simulation_toolbar.reset_view_action.triggered.connect(self._on_reset_view)
 
         # --- Export (screenshot / recording) ---
         self.export_manager = ExportManager(self, lambda: self.grid)
 
         # --- Initial grid ---
-        self.grid = None
+        self.grid: SimulationGrid | None = None
 
         # --- Simulation flags and data ---
         self.playing = False
@@ -378,6 +378,10 @@ class MainWindow(QMainWindow):
             if started:
                 action.setIcon(make_icon("stop_rec"))
                 action.setText("Stop Rec")
+
+    def _on_reset_view(self):
+        if self.grid is not None:
+            self.grid.reset_views()
 
     def closeEvent(self, event):
         """Handle the close event to stop all timers and clean up."""

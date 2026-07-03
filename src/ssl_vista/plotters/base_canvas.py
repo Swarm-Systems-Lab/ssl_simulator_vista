@@ -101,7 +101,6 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
             self.pvqt.enable_2d_style()
         else:
             self.pvqt.camera_position = "iso"
-            self.pvqt.camera.Azimuth(-90)
             self.pvqt.camera.SetParallelProjection(False)
             self.pvqt.enable_3_lights()
 
@@ -115,6 +114,17 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         """Reset the scene by clearing and reinitializing artists."""
         self._clear_artists()
         self.init_artists(sim_data, sim_settings)
+        self.pvqt.reset_camera()
+
+    def reset_view(self) -> None:
+        """Restore initial camera orientation, grid position, and fit the scene."""
+        self.canvas_grid.reset()
+        if self.dimension == 2:
+            self.pvqt.camera_position = "xy"
+            self.pvqt.camera.SetParallelProjection(True)
+        else:
+            self.pvqt.camera_position = "iso"
+            self.pvqt.camera.SetParallelProjection(False)
         self.pvqt.reset_camera()
 
     def update_all_scene_objects(self, sim_data, idx):

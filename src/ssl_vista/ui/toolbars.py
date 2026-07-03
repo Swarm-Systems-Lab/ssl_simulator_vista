@@ -79,6 +79,14 @@ class SimulationToolbar(QToolBar):
         self.addSeparator()
 
         # ------------------------------------------------------------------
+        # View controls
+        # ------------------------------------------------------------------
+        self.reset_view_action = QAction(make_icon("reset_view"), "Reset View", self)
+        self.addAction(self.reset_view_action)
+
+        self.addSeparator()
+
+        # ------------------------------------------------------------------
         # Export controls
         # ------------------------------------------------------------------
         self.screenshot_action = QAction(make_icon("screenshot"), "Screenshot", self)

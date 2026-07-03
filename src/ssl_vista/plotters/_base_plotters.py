@@ -53,6 +53,9 @@ class _BasePlotter:
         """
         raise NotImplementedError("Subclasses must implement update_all_scene_objects()")
 
+    def reset_view(self) -> None:
+        """Restore the initial camera / view state. No-op by default."""
+
     # ---------------------------------------------------------------
     # KEY EVENT HANDLING (can be overridden)
     # ---------------------------------------------------------------

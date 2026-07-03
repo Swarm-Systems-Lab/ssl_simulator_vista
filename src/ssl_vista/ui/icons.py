@@ -60,6 +60,16 @@ _FILES_MENU = """
 </svg>
 """
 
+_RESET_VIEW = """
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="#444444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="2" y="3" width="20" height="14" rx="2"/>
+  <line x1="8" y1="21" x2="16" y2="21"/>
+  <line x1="12" y1="17" x2="12" y2="21"/>
+  <path d="M7 10 l2.5-2.5 2.5 2.5 2.5-2.5 2.5 2.5" stroke-width="1.6"/>
+</svg>
+"""
+
 _SVGS: dict[str, str] = {
     "record": _RECORD,
     "stop_rec": _STOP_REC,
@@ -68,6 +78,7 @@ _SVGS: dict[str, str] = {
     "stop": _STOP,
     "reset": _RESET,
     "files_menu": _FILES_MENU,
+    "reset_view": _RESET_VIEW,
 }
 
 # ---------------------------------------------------------------------------

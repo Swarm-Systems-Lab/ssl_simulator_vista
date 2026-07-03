@@ -93,6 +93,23 @@ class CanvasGrid:
             self._create_3d()
         self.pv_plotter.reset_camera()
 
+    def _sync_axes_bounds(self) -> None:
+        """Push the grid mesh bounds to the CubeAxesActor.
+
+        pv_plotter.update_bounds_axes() recomputes from ALL visible actors, so
+        it expands whenever robots drift near the edge. Calling update_bounds()
+        directly on the actor limits the labels to the grid mesh only.
+        """
+        actor = self.pv_plotter.renderer.cube_axes_actor
+        if actor is not None and self.mesh is not None:
+            actor.update_bounds(self.mesh.bounds)
+
+    def reset(self) -> None:
+        """Sync the CubeAxesActor bound to the grid mesh."""
+        if self.mesh is None:
+            return
+        self._sync_axes_bounds()
+
     def update_center(self, new_center):
         """
         Updates the center of the grid and adjusts the mesh accordingly.

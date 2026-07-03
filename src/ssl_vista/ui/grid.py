@@ -149,6 +149,12 @@ class SimulationGrid(QWidget):
             if plotter is not None:
                 plotter.update_all_scene_objects(sim_data, idx)
 
+    def reset_views(self):
+        """Restore the initial camera/view state for all subplots."""
+        for plotter in self._plotter_array.flatten():
+            if plotter is not None:
+                plotter.reset_view()
+
     # ---------------------------------------------------------------
     # TIMER METHODS
     # ---------------------------------------------------------------
