@@ -118,7 +118,10 @@ class SimulationToolbar(QToolBar):
     def _on_load_grid_layout(self):
         """Prompt the user to select a grid layout file."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Grid Layout File", self._last_grid_dir, "Layout Files (*.json *.yaml *.yml);;All Files (*)"
+            self,
+            "Select Grid Layout File",
+            self._last_grid_dir,
+            "Layout Files (*.json *.yaml *.yml);;All Files (*)",
         )
         if not file_path:
             return

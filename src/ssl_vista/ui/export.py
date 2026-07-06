@@ -260,9 +260,7 @@ def _videos_dir() -> Path:
 class RecordingConfigDialog(QDialog):
     """Shown before recording starts: choose format, fps, and output path."""
 
-    def __init__(
-        self, default_fps: int, default_stem: str, parent: QWidget | None = None
-    ) -> None:
+    def __init__(self, default_fps: int, default_stem: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowFlags(self.windowFlags() | Qt.Window)
         self.setWindowTitle("Start Recording")
@@ -306,7 +304,7 @@ class RecordingConfigDialog(QDialog):
     def _browse(self) -> None:
         fmt: ExportFormat = self._fmt.currentData()
         ext = fmt.extension().lstrip(".")
-        default = (self._path or _videos_dir() / f"{_default_stem()}{fmt.extension()}")
+        default = self._path or _videos_dir() / f"{_default_stem()}{fmt.extension()}"
         result = _save_dialog(
             self,
             "Save Recording As",
@@ -391,8 +389,10 @@ class ExportManager:
         try:
             Image.fromarray(img).save(path)
             _logger.info("Screenshot saved: %s", path)
-        except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self._window, "Screenshot Failed", f"Could not save to:\n{path}\n{exc}")
+        except Exception as exc:
+            QMessageBox.critical(
+                self._window, "Screenshot Failed", f"Could not save to:\n{path}\n{exc}"
+            )
 
     # ------------------------------------------------------------------
     # Recording
@@ -433,7 +433,7 @@ class ExportManager:
 
         try:
             writer = _open_writer(imageio, fmt, path, fps)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             QMessageBox.critical(self._window, "Recording Error", str(exc))
             return False
 
@@ -468,9 +468,7 @@ class ExportManager:
         # Restore normal resizing behaviour
         self._window.setMinimumSize(0, 0)
         self._window.setMaximumSize(16777215, 16777215)  # QWIDGETSIZE_MAX
-        _logger.info(
-            "Recording stopped: %d frames → %s", session.frame_count, session.output_path
-        )
+        _logger.info("Recording stopped: %d frames → %s", session.frame_count, session.output_path)
         QMessageBox.information(
             self._window,
             "Recording Saved",
