@@ -53,7 +53,6 @@ class GridConfig(_BaseConfig):
     color: str = "black"
     grid: bool = True
     minor_ticks: bool = True
-    use_3d_text: bool = False
 
     def show_bounds_style(self) -> dict:
         """The subset of fields forwarded to PyVista ``show_bounds``."""
@@ -65,8 +64,7 @@ class GridConfig(_BaseConfig):
             "bold": self.bold,
             "color": self.color,
             "grid": self.grid,
-            "minor_ticks": self.minor_ticks,
-            "use_3d_text": self.use_3d_text
+            "minor_ticks": self.minor_ticks
         }
 
 

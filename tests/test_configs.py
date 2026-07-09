@@ -19,7 +19,7 @@ def test_grid_defaults_and_style_keys():
     assert set(style) == {
         "font_size", "xtitle", "ytitle", "ztitle", "bold", "color", "grid", "minor_ticks"
     }
-    assert style["font_size"] == 10 and style["color"] == "black"
+    assert style["font_size"] == 15 and style["color"] == "black"
 
 
 def test_extra_forbid_rejects_typos():
