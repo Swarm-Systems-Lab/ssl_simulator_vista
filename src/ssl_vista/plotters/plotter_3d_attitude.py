@@ -8,7 +8,7 @@ from ssl_simulator.math import check_and_parse_dimensions
 
 from ._base_plotters import _BaseVisualPlotter
 from .pv_utils.canvas_grid import CanvasGrid
-from .pv_utils.scene_objects import Axes, SphereGrid
+from .pv_utils.scene import Axes, SphereGrid
 
 
 class Plotter3DAttitude(_BaseVisualPlotter):
@@ -54,18 +54,12 @@ class Plotter3DAttitude(_BaseVisualPlotter):
     # SCENE SETUP
     # ------------------------------------------------------------------
     def setup_scene(self):
-        """Initialize the 3D attitude visualization scene."""
+        """Set up the camera, lights, and reference grid (data-independent)."""
         self.pvqt.set_background("white")
         self.pvqt.camera_position = "iso"
         self.pvqt.camera.Azimuth(-80)
         self.pvqt.camera.SetParallelProjection(False)
         self.pvqt.enable_3_lights()
-
-        # Add sphere grid and 3 attitude vectors (x, y, z axes)
-        self.obj_axes = Axes()
-        self.obj_sphere = SphereGrid(radius=1.0)
-        self.add_scene_object("axes", self.obj_axes)
-        self.add_scene_object("sphere_grid", self.obj_sphere)
 
         # Add a 3D reference grid
         self.canvas_grid.setup_grid()
@@ -73,33 +67,32 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         # Set a nice default view
         self.pvqt.reset_camera()
 
-    def reset_scene(self, sim_data=None, sim_settings=None):
+    # ------------------------------------------------------------------
+    # ARTISTS
+    # ------------------------------------------------------------------
+    def init_artists(self, sim_data, sim_settings):
+        """Create the sphere grid and the x/y/z attitude axes."""
+        if self.label_rot not in sim_data:
+            raise KeyError(
+                f"sim_data must contain '{self.label_rot}' key for attitude visualization"
+            )
         data_rot = check_and_parse_dimensions(
             sim_data[self.label_rot], (None, None, 3, 3), "rotation matrix"
         )
         self.num_agents = data_rot.shape[1]
-        self.pvqt.reset_camera()
 
-    # ------------------------------------------------------------------
-    # DATA HANDLING
-    # ------------------------------------------------------------------
-    def _rotate_axes(self):
-        """Rotate the axes to match the current robot's orientation."""
-        R = self.current_R[self.context.robot_focus, :, :]
-        self.obj_axes.transform_to(R=R)
+        self.obj_axes = Axes()
+        self.obj_sphere = SphereGrid(radius=1.0)
+        self.add_scene_object("axes", self.obj_axes)
+        self.add_scene_object("sphere_grid", self.obj_sphere)
 
-    def update_all_scene_objects(self, sim_data, idx):
+    def update_artists(self, sim_data, idx):
         """
         Update attitude visualization from simulation data.
 
         sim_data[self.label_rot] should have shape (T, N, 3, 3),
         where T = time steps, N = number of robots.
         """
-        if self.label_rot not in sim_data:
-            raise KeyError(
-                f"sim_data must contain '{self.label_rot}' key for attitude visualization"
-            )
-
         # FIXME: this will be inefficient, data should come formatted.
         #        We need a better way to handle dimensionality with multiple robots and
         #        timesteps without forcing users to pre-format data in a specific way.
@@ -109,7 +102,16 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         self.num_agents = data_rot.shape[1]
         self.current_R = data_rot[idx, :, :, :]
         self._rotate_axes()
-        self.pvqt.render()
+
+    # ------------------------------------------------------------------
+    # DATA HANDLING
+    # ------------------------------------------------------------------
+    def _rotate_axes(self):
+        """Rotate the axes to match the current robot's orientation."""
+        if self.obj_axes is None:
+            return
+        R = self.current_R[self.context.robot_focus, :, :]
+        self.obj_axes.set_pose(R=R)
 
     # ------------------------------------------------------------------
     # KEYBOARD CONTROL

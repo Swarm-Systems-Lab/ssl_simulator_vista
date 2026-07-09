@@ -64,6 +64,7 @@ class Plotter3DCanvas(BaseCanvasPlotter):
                 "color": self.robot_color,
                 "size": self.robot_size,
                 "axes": self.robot_axes,
+                "traj_max_len": self.robot_tail,
             }
             for i in range(n_robots)
         ]
@@ -71,8 +72,8 @@ class Plotter3DCanvas(BaseCanvasPlotter):
         for i, robot_kwargs in enumerate(robots_kwargs):
             obj_robot = self.add_robot(**robot_kwargs)
             self.robot_objs.append(obj_robot)
-            obj_robot.transform_to(
-                centroid=data_pos[0, i, :], R=data_rot[0, i, :, :] if data_rot is not None else None
+            obj_robot.set_pose(
+                position=data_pos[0, i, :], R=data_rot[0, i, :, :] if data_rot is not None else None
             )
 
     # ------------------------------------------------------------------
@@ -93,13 +94,10 @@ class Plotter3DCanvas(BaseCanvasPlotter):
         for i, robot_obj in enumerate(self.robot_objs):
             centroid3 = data_pos[idx, i, :]  # shape (3,)
             R = data_rot[idx, i, :, :] if data_rot is not None else None
-            robot_obj.transform_to(centroid3, R)
+            robot_obj.set_pose(position=centroid3, R=R)
 
-            traj_positions = data_pos[0:idx, i, :]  # shape (idx,3)
-            if self.robot_tail is not None and traj_positions.shape[0] > self.robot_tail:
-                traj_positions = traj_positions[-self.robot_tail :, :]
-            robot_obj.set_traj_points(traj_positions)
-
+            # Full history; the trajectory trims itself to traj_max_len.
+            robot_obj.set_traj_points(data_pos[0:idx, i, :])
             robot_obj.set_visibility(True)
 
         # - Update the canvas grid center

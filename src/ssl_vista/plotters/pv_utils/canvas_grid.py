@@ -1,10 +1,7 @@
 __all__ = ["CanvasGrid"]
 
-from os import minor
-
 import numpy as np
 import pyvista as pv
-from pyparsing import line
 
 
 class CanvasGrid:
@@ -25,7 +22,7 @@ class CanvasGrid:
         if grid_range is None:
             grid_range = [5] * dimension
         if ticks is None:
-            ticks = [11] * dimension
+            ticks = [5] * dimension
         # Ensure range and ticks are lists of length 'dimension'
         if isinstance(grid_range, (int, float)):
             grid_range = [grid_range] * dimension

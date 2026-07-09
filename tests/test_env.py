@@ -21,7 +21,7 @@ BASIC_MODULES = [
 # GUI modules that require display/OpenGL
 GUI_MODULES = [
     "ssl_vista.plotters",
-    "ssl_vista.plotters.pv_utils.scene_objects",
+    "ssl_vista.plotters.pv_utils.scene",
     "PyQt5",
 ]
 

@@ -61,6 +61,7 @@ class Plotter2DCanvas(BaseCanvasPlotter):
                 "icon_type": self.robot_type,
                 "color": self.robot_color,
                 "size": self.robot_size,
+                "traj_max_len": self.robot_tail,
             }
             for i in range(n_robots)
         ]
@@ -68,8 +69,8 @@ class Plotter2DCanvas(BaseCanvasPlotter):
         for i, robot_kwargs in enumerate(robots_kwargs):
             obj_robot = self.add_robot(**robot_kwargs)
             self.robot_objs.append(obj_robot)
-            obj_robot.transform_to(
-                centroid=data_pos[0, i, :],
+            obj_robot.set_pose(
+                position=data_pos[0, i, :],
                 heading=data_heading[0, i] if data_heading is not None else None,
             )
 
@@ -91,14 +92,10 @@ class Plotter2DCanvas(BaseCanvasPlotter):
         for i, robot_obj in enumerate(self.robot_objs):
             centroid = data_pos[idx, i, :]  # shape (2,)
             heading = data_heading[idx, i] if data_heading is not None else None
-            robot_obj.transform_to(centroid, heading)
+            robot_obj.set_pose(position=centroid, heading=heading)
 
-            traj_xy = data_pos[0:idx, i, :]  # shape (idx,2)
-            traj_positions = np.hstack([traj_xy, np.zeros((traj_xy.shape[0], 1))])
-            if self.robot_tail is not None and traj_positions.shape[0] > self.robot_tail:
-                traj_positions = traj_positions[-self.robot_tail :, :]
-            robot_obj.set_traj_points(traj_positions)
-
+            # Full history; the trajectory trims itself to traj_max_len.
+            robot_obj.set_traj_points(data_pos[0:idx, i, :])
             robot_obj.set_visibility(True)
 
         # - Update the canvas grid center

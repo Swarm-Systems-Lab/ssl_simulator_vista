@@ -5,7 +5,7 @@ import pyvista as pv
 
 from ._base_plotters import _BaseVisualPlotter
 from .pv_utils.canvas_grid import CanvasGrid
-from .pv_utils.scene_objects import Robot2D, Robot3D
+from .pv_utils.scene import Robot2D, Robot3D
 
 
 class BaseCanvasPlotter(_BaseVisualPlotter):
@@ -38,11 +38,6 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         self.sim_data_labels = sim_data_labels
 
         # - Canvas grid
-        if canvas_grid_range is None:
-            canvas_grid_range = [5, 5] if dimension == 2 else [5, 5, 5]
-        if canvas_grid_ticks is None:
-            canvas_grid_ticks = [11, 11] if dimension == 2 else [11, 11, 11]
-
         self.canvas_grid = CanvasGrid(
             self.pvqt, dimension=dimension, grid_range=canvas_grid_range, ticks=canvas_grid_ticks
         )
@@ -51,33 +46,20 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
     # ARTISTS MANAGEMENT
     # ---------------------------------------------------------------
 
-    def init_artists(self, sim_data, sim_settings):
-        """
-        Initialize the scene's artists. Must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement `init_artists`.")
-
-    def update_artists(self, sim_data, idx):
-        """
-        Update the scene's artists. Must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement `update_artists`.")
-
     def _clear_artists(self):
         """Remove all artists from the scene."""
-        for obj_name in list(self.scene_objects):
-            self.remove_scene_object(obj_name)
+        self.clear_scene_objects()
         self._robot_objs.clear()
 
     # ---------------------------------------------------------------
     # CANVAS HELPER METHODS
     # ---------------------------------------------------------------
-    def add_robot(self, robot_name, icon_type, visible=True, **kwargs):
-        # - Create the robot mesh
+    def add_robot(self, robot_name, icon_type, visible=True, traj_max_len=None, **kwargs):
+        # - Create the robot bundle (trajectory tail self-trims to traj_max_len)
         if self.dimension == 2:
-            obj_robot = Robot2D(icon_type, visible=visible, **kwargs)
+            obj_robot = Robot2D(icon_type, visible=visible, traj_max_len=traj_max_len, **kwargs)
         else:
-            obj_robot = Robot3D(icon_type, visible=visible, **kwargs)
+            obj_robot = Robot3D(icon_type, visible=visible, traj_max_len=traj_max_len, **kwargs)
 
         self.add_scene_object(robot_name, obj_robot)
         self._robot_objs.append(obj_robot)
@@ -127,24 +109,12 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
             self.pvqt.camera.SetParallelProjection(False)
         self.pvqt.reset_camera()
 
-    def update_all_scene_objects(self, sim_data, idx):
-        """Update all artists in the scene."""
-        self.update_artists(sim_data, idx)
-        self.pvqt.render()
-
     # ---------------------------------------------------------------
     # SCENE OBJECTS MANAGEMENT
     # ---------------------------------------------------------------
     def get_scene_object(self, obj_name):
         """Retrieve a scene object by name."""
         return self.scene_objects.get(obj_name, None)
-
-    def get_robot_objects(self, robot_name):
-        """Retrieve the robot and its trajectory objects."""
-        obj = self.get_scene_object(robot_name)
-        if obj is None:
-            return None, None
-        return self.get_scene_object(robot_name), self.get_scene_object(robot_name + ".traj")
 
     def in_scene(self, names):
         """Check if one or more scene objects exist."""

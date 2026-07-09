@@ -8,7 +8,7 @@ from PyQt5 import QtCore, QtGui
 from pyvistaqt import QtInteractor
 
 from .pv_utils.debug import _actor_snapshot
-from .pv_utils.scene_objects import SceneObject, SceneObjectBundle
+from .pv_utils.scene import Drawable, SceneObject
 
 _logger = logging.getLogger(__name__)
 
@@ -36,7 +36,22 @@ class _BasePlotter:
         return self.widget
 
     # ---------------------------------------------------------------
-    # ABSTRACT METHODS (must be implemented)
+    # AUTHORING CONTRACT (implemented by every plotter, any backend)
+    # ---------------------------------------------------------------
+    # Leaf plotters implement `init_artists` / `update_artists`; the framework
+    # lifecycle methods below (`setup_scene` / `reset_scene` /
+    # `update_all_scene_objects`) are what the grid driver calls and are wired to
+    # them by each backend base class (PyVista, Matplotlib, and future pyqtgraph).
+    def init_artists(self, sim_data, sim_settings):
+        """Create the scene's artists from data. Implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement init_artists()")
+
+    def update_artists(self, sim_data, idx):
+        """Update the scene's artists for frame ``idx``. Implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement update_artists()")
+
+    # ---------------------------------------------------------------
+    # FRAMEWORK LIFECYCLE (called by the grid driver)
     # ---------------------------------------------------------------
     def setup_scene(self):
         """Set up the initial scene"""
@@ -97,29 +112,30 @@ class _BaseVisualPlotter(_BasePlotter):
         self.pvqt = QtInteractor(parent=parent)
         self.set_widget(self.pvqt)
 
-        # - Dictionary storing all scene objects
-        self.scene_objects = {}  # dict of SceneObject
+        # - Registries: flat leaf actors, plus top-name -> leaf-names for groups.
+        self.scene_objects = {}  # full_name -> SceneObject (leaf)
+        self._scene_groups = {}  # top_name -> [full leaf names]
 
         # - Connect to context signals
         self.context.robot_focus_changed.connect(self._robot_focus_changed)
 
     # ---------------------------------------------------------------
-    # ABSTRACT METHODS (must be implemented)
+    # FRAMEWORK LIFECYCLE (wired to init_artists / update_artists)
     # ---------------------------------------------------------------
     def setup_scene(self):
-        """Set up the initial scene (camera, actors, grid, etc)."""
+        """Set up the initial scene (camera, lights, grid). Implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement setup_scene()")
 
     def reset_scene(self, sim_data, sim_settings):
-        """Reset the scene to its initial state."""
-        raise NotImplementedError("Subclasses must implement reset_scene()")
+        """Clear existing artists and (re)build them from data via init_artists()."""
+        self.clear_scene_objects()
+        self.init_artists(sim_data, sim_settings)
+        self.pvqt.reset_camera()
 
     def update_all_scene_objects(self, sim_data, idx):
-        """
-        Update all objects in the scene.
-        Subclasses must implement this to update positions, orientations, etc.
-        """
-        raise NotImplementedError("Subclasses must implement update_all_scene_objects()")
+        """Update artists for frame ``idx`` via update_artists(), then render."""
+        self.update_artists(sim_data, idx)
+        self.pvqt.render()
 
     # ---------------------------------------------------------------
     # ABSTRACT CONTEXT SIGNALS CALLBACKS (can be overridden)
@@ -137,94 +153,49 @@ class _BaseVisualPlotter(_BasePlotter):
     # ---------------------------------------------------------------
     # SCENE OBJECT MANAGEMENT
     # ---------------------------------------------------------------
-    def add_scene_object(self, bundle_name: str, bundle: SceneObject | SceneObjectBundle):
-        """
-        Add a SceneObject or all children from a SceneObjectBundle to the scene.
+    def add_scene_object(self, name: str, obj: Drawable):
+        """Add any :class:`Drawable` to the scene.
 
-        If a SceneObjectBundle is provided, each child will be registered with the name:
-        "{bundle_name}.{child_name}". If a single SceneObject is provided, it will be
-        registered directly under the given bundle_name.
+        The drawable creates its own actor(s) via ``obj._attach(pvqt, name)`` and
+        returns its leaf objects. A single :class:`SceneObject` registers under
+        ``name``; a :class:`SceneObjectGroup` registers each leaf as
+        ``"{name}.{child_name}"``. Any object implementing the ``_attach`` protocol
+        (including user-defined ones) integrates without special-casing.
 
-        Parameters
-        ----------
-        bundle_name : str
-            Name or prefix for the object(s) being added.
-        bundle : SceneObject or SceneObjectBundle
-            The object or bundle containing multiple scene objects or nested bundles.
-
-        Returns
-        -------
-        bundle : SceneObject or SceneObjectBundle
-            The same object or bundle (for chaining).
+        Returns the same object for chaining.
 
         Example
         -------
-        # Adding a single SceneObject
-        sphere = SceneObject(mesh=sphere_mesh)
+        sphere = Mesh(pv.Sphere(), color="orange")
         self.add_scene_object("sphere", sphere)
-
-        # Adding a SceneObjectBundle
-        sphere_bundle = SphereGrid(radius=1.0)
-        self.add_scene_object("sphere_grid", sphere_bundle)
+        sphere.set_pose(position=[1, 0, 0])
         """
-        if isinstance(bundle, SceneObject):
-            style = bundle.style.copy()
+        if not isinstance(obj, Drawable):
+            raise TypeError("add_scene_object expects a Drawable (SceneObject / SceneObjectGroup).")
 
-            # Extract "visible" if present in style
-            visible = style.pop("visible", True)
-            bundle.set_visibility(visible)
-
-            # Add a single SceneObject
-            actor = self.pvqt.add_mesh(bundle.mesh, **style)
-            bundle.actor = actor
-            actor.visibility = visible
-            self.scene_objects[bundle_name] = bundle
-
-        elif isinstance(bundle, SceneObjectBundle):
-            # Add all children from a SceneObjectBundle
-            for child_name, child_data in bundle.children.items():
-                obj = child_data["obj"]
-                style = child_data["style"]
-                full_name = f"{bundle_name}.{child_name}"
-
-                # Check if the object is another SceneObjectBundle
-                if isinstance(obj, SceneObjectBundle):
-                    self.add_scene_object(full_name, obj)
-                else:
-                    # Extract "visible" if present in style
-                    visible = style.pop("visible", True)
-                    obj.set_visibility(visible)
-
-                    # Add the child object with its styling
-                    actor = self.pvqt.add_mesh(obj.mesh, **style)
-                    actor.visibility = visible
-                    obj.actor = actor
-                    self.scene_objects[full_name] = obj
-        else:
-            raise TypeError("The 'bundle' parameter must be a SceneObject or SceneObjectBundle.")
-
-        return bundle
+        leaves = obj._attach(self.pvqt, name)
+        self._scene_groups[name] = [full_name for full_name, _leaf in leaves]
+        for full_name, leaf in leaves:
+            self.scene_objects[full_name] = leaf
+        return obj
 
     def remove_scene_object(self, name: str):
-        """Remove a scene object from the plotter."""
-        if name in self.scene_objects:
-            actor = self.scene_objects[name].actor
-            self.pvqt.remove_actor(actor)
-            del self.scene_objects[name]
+        """Remove a scene object (single leaf or a whole group added under ``name``)."""
+        full_names = self._scene_groups.pop(name, None)
+        if full_names is None:
+            full_names = [name] if name in self.scene_objects else []
+        for full_name in full_names:
+            leaf = self.scene_objects.pop(full_name, None)
+            if leaf is not None and leaf.actor is not None:
+                self.pvqt.remove_actor(leaf.actor)
 
-    def remove_scene_object_bundle(self, bundle_name: str):
-        """
-        Remove all scene objects that belong to a bundle.
-
-        Parameters
-        ----------
-        bundle_name : str
-            The prefix used when adding the bundle
-        """
-        # Find all objects with this prefix
-        keys_to_remove = [k for k in self.scene_objects if k.startswith(f"{bundle_name}_")]
-        for key in keys_to_remove:
-            self.remove_scene_object(key)
+    def clear_scene_objects(self):
+        """Remove every scene object's actor and reset the registries."""
+        for leaf in self.scene_objects.values():
+            if leaf.actor is not None:
+                self.pvqt.remove_actor(leaf.actor)
+        self.scene_objects.clear()
+        self._scene_groups.clear()
 
     # ---------------------------------------------------------------
     # CONTEXT SIGNALS CALLBACKS
