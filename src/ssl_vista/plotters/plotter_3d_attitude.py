@@ -7,15 +7,17 @@ from PyQt5.QtWidgets import QLabel, QPushButton, QToolBar, QVBoxLayout, QWidget
 from ssl_simulator.math import check_and_parse_dimensions
 
 from ._base_plotters import _BaseVisualPlotter
+from .base_canvas import apply_camera
 from .pv_utils.canvas_grid import CanvasGrid
+from .pv_utils.configs import CameraConfig, GridConfig
 from .pv_utils.scene import Axes, SphereGrid
 
 
 class Plotter3DAttitude(_BaseVisualPlotter):
     """3D Attitude visualizer for a single robot's orientation matrix."""
 
-    def __init__(self, parent=None, label_rot="robot.R", **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, *, parent=None, context=None, label_rot="robot.R", grid=None, camera=None):
+        super().__init__(parent=parent, context=context)
 
         # --- CUSTOM WIDGET SETUP ---
         custom_widget = QWidget(parent)
@@ -42,10 +44,14 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         # - Simulation data labels
         self.label_rot = label_rot
 
+        # - Config namespaces (attitude defaults: unit grid, iso view azimuth -80)
+        self.grid_config = GridConfig.build(grid, range=1, ticks=5)
+        self.camera_config = CameraConfig.build(camera, azimuth=-80)
+
         # - Static scene objects
         self.obj_axes = None
         self.obj_sphere = None
-        self.canvas_grid = CanvasGrid(self.pvqt, dimension=3, grid_range=1, ticks=5)
+        self.canvas_grid = CanvasGrid(self.pvqt, dimension=3, config=self.grid_config)
 
         # - Connect to context signals
         self.context.robot_focus_changed.connect(self._rotate_axes)
@@ -55,11 +61,7 @@ class Plotter3DAttitude(_BaseVisualPlotter):
     # ------------------------------------------------------------------
     def setup_scene(self):
         """Set up the camera, lights, and reference grid (data-independent)."""
-        self.pvqt.set_background("white")
-        self.pvqt.camera_position = "iso"
-        self.pvqt.camera.Azimuth(-80)
-        self.pvqt.camera.SetParallelProjection(False)
-        self.pvqt.enable_3_lights()
+        apply_camera(self.pvqt, self.camera_config.resolved(3))
 
         # Add a 3D reference grid
         self.canvas_grid.setup_grid()

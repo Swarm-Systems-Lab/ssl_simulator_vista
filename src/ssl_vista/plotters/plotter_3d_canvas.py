@@ -4,6 +4,9 @@ import numpy as np
 import pyvista as pv
 
 from .base_canvas import BaseCanvasPlotter
+from .pv_utils.configs import RobotConfig
+
+_ROBOT_DEFAULTS = {"type": "unicycle", "color": "darkgrey", "size": 0.5, "tail": 500, "axes": True}
 
 
 class Plotter3DCanvas(BaseCanvasPlotter):
@@ -13,23 +16,42 @@ class Plotter3DCanvas(BaseCanvasPlotter):
 
     def __init__(
         self,
-        robot_type="unicycle",
-        robot_tail=500,
-        robot_color="darkgrey",
-        robot_size=0.5,
-        robot_axes=True,
+        *,
+        robot=None,
+        grid=None,
+        camera=None,
+        graphics=None,
         label_pos="robot.p",
         label_rot="robot.R",
-        **kwargs,
+        parent=None,
+        context=None,
+        # deprecated flat aliases (use the `robot` namespace instead)
+        robot_type=None,
+        robot_tail=None,
+        robot_color=None,
+        robot_size=None,
+        robot_axes=None,
     ):
-        super().__init__(dimension=3, sim_data_labels=None, **kwargs)
+        robot_cfg = RobotConfig.resolve(
+            robot,
+            defaults=_ROBOT_DEFAULTS,
+            type=robot_type,
+            tail=robot_tail,
+            color=robot_color,
+            size=robot_size,
+            axes=robot_axes,
+        )
+        super().__init__(
+            dimension=3, parent=parent, context=context,
+            grid=grid, camera=camera, graphics=graphics, robot=robot_cfg,
+        )
 
-        # - Robot parameters
-        self.robot_type = robot_type
-        self.robot_tail = robot_tail
-        self.robot_color = robot_color
-        self.robot_size = robot_size
-        self.robot_axes = robot_axes
+        # - Robot parameters (kept as attributes for init_artists/update_artists)
+        self.robot_type = self.robot_config.type
+        self.robot_tail = self.robot_config.tail
+        self.robot_color = self.robot_config.color
+        self.robot_size = self.robot_config.size
+        self.robot_axes = self.robot_config.axes
 
         # - Simulation data labels
         self.label_pos = label_pos

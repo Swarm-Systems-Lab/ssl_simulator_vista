@@ -5,8 +5,9 @@
       "type": "Plotter3DCanvas",
       "position": [0, 0],
       "args": {
-        "robot_type": "unicycle",
-        "robot_color": "blue"
+        "robot": {"type": "unicycle", "color": "blue", "size": 0.5},
+        "grid": {"range": 5, "ticks": 11, "font_size": 12},
+        "camera": {"background": "white"}
       }
     },
     {

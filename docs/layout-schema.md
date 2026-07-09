@@ -12,11 +12,32 @@ They are validated against strict Pydantic models before any Qt widgets or plott
     {
       "type": "Plotter2DCanvas",
       "position": [0, 0],
-      "args": {"robot_type": "unicycle", "robot_color": "blue"}
+      "args": {
+        "robot": {"type": "unicycle", "color": "blue"},
+        "grid": {"range": 5, "ticks": 11, "font_size": 12},
+        "camera": {"background": "white"}
+      }
     }
   ]
 }
 ```
+
+### Config namespaces in `args`
+
+Canvas-plotter options are grouped into typed **namespaces**, each forwarded whole to its
+sub-component (so any option a sub-component supports is reachable from a layout):
+
+- `grid` — grid range/ticks and label style (`range`, `ticks`, `font_size`, `xtitle`,
+  `ytitle`, `ztitle`, `bold`, `color`, `grid`, `minor_ticks`).
+- `camera` — `background`, `position`, `parallel`, `lights` (`"three"|"2d"`), `azimuth`.
+  Unset fields resolve to per-dimension defaults.
+- `robot` — `type`, `color`, `size`, `tail`, `axes`.
+- `graphics` — default line sizes (`axes_line_width`, `trajectory_size`, ...).
+
+Each namespace is validated (`extra="forbid"`), so a typo like `{"grid": {"fnt_size": 12}}`
+raises instead of being silently ignored. The flat `robot_*` args
+(`robot_type`, `robot_color`, `robot_size`, `robot_tail`, `robot_axes`) still work but are
+**deprecated** in favor of the `robot` namespace.
 
 Fields:
 
@@ -48,7 +69,10 @@ Example (`2d_canvas.json`):
     {
       "type": "Plotter2DCanvas",
       "position": [0, 0],
-      "args": {"robot_type": "unicycle", "robot_color": "blue"}
+      "args": {
+        "robot": {"type": "unicycle", "color": "blue"},
+        "grid": {"range": 5, "ticks": 11}
+      }
     }
   ]
 }

@@ -5,12 +5,32 @@ import pyvista as pv
 
 from ._base_plotters import _BaseVisualPlotter
 from .pv_utils.canvas_grid import CanvasGrid
+from .pv_utils.configs import CameraConfig, GraphicsConfig, GridConfig, RobotConfig
 from .pv_utils.scene import Robot2D, Robot3D
+
+
+def apply_camera(pvqt, cam: dict) -> None:
+    """Apply a resolved :class:`CameraConfig` (see ``CameraConfig.resolved``) to a plotter."""
+    pvqt.set_background(cam["background"])
+    pvqt.camera_position = cam["position"]
+    pvqt.camera.SetParallelProjection(cam["parallel"])
+    if cam["lights"] == "2d":
+        pvqt.enable_2d_style()
+    elif cam["lights"] == "three":
+        pvqt.enable_3_lights()
+    if cam["azimuth"] is not None:
+        pvqt.camera.Azimuth(cam["azimuth"])
 
 
 class BaseCanvasPlotter(_BaseVisualPlotter):
     """
     Generalized PyVista canvas for spatial visualization.
+
+    Configuration is grouped into namespaces — ``grid`` (:class:`GridConfig`),
+    ``camera`` (:class:`CameraConfig`), ``robot`` (:class:`RobotConfig`) and
+    ``graphics`` (:class:`GraphicsConfig`) — each accepting a model or a plain dict
+    (e.g. from a layout file's ``args``). Each namespace is forwarded whole to its
+    sub-component, so options never need re-declaring on this class.
 
     Subclasses should:
       - Implement `init_artists(self, sim_data, sim_settings)` to define the scene's artists.
@@ -20,27 +40,29 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
     def __init__(
         self,
         dimension,  # 2 or 3
+        *,
         parent=None,
+        context=None,
         sim_data_labels=None,
-        canvas_grid_range=None,
-        canvas_grid_ticks=None,
-        **kwargs,
+        grid=None,
+        camera=None,
+        robot=None,
+        graphics=None,
     ):
-        super().__init__(parent=parent, **kwargs)
+        super().__init__(parent=parent, context=context)
 
         self.dimension = dimension
-        self.sim_data_labels = sim_data_labels or {}
         self._robot_objs = []
+        self.sim_data_labels = sim_data_labels or {"positions": "robot.p", "rotations": "robot.R"}
 
-        # - Simulation data labels
-        if sim_data_labels is None:
-            sim_data_labels = {"positions": "robot.p", "rotations": "robot.R"}
-        self.sim_data_labels = sim_data_labels
+        # - Config namespaces (each accepts a model, a dict, or None)
+        self.grid_config = GridConfig.build(grid)
+        self.camera_config = CameraConfig.build(camera)
+        self.graphics = GraphicsConfig.build(graphics)
+        self.robot_config = RobotConfig.build(robot)
 
-        # - Canvas grid
-        self.canvas_grid = CanvasGrid(
-            self.pvqt, dimension=dimension, grid_range=canvas_grid_range, ticks=canvas_grid_ticks
-        )
+        # - Canvas grid (whole grid namespace forwarded)
+        self.canvas_grid = CanvasGrid(self.pvqt, dimension=dimension, config=self.grid_config)
 
     # ---------------------------------------------------------------
     # ARTISTS MANAGEMENT
@@ -56,10 +78,14 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
     # ---------------------------------------------------------------
     def add_robot(self, robot_name, icon_type, visible=True, traj_max_len=None, **kwargs):
         # - Create the robot bundle (trajectory tail self-trims to traj_max_len)
-        if self.dimension == 2:
-            obj_robot = Robot2D(icon_type, visible=visible, traj_max_len=traj_max_len, **kwargs)
-        else:
-            obj_robot = Robot3D(icon_type, visible=visible, traj_max_len=traj_max_len, **kwargs)
+        robot_cls = Robot2D if self.dimension == 2 else Robot3D
+        obj_robot = robot_cls(
+            icon_type,
+            visible=visible,
+            traj_max_len=traj_max_len,
+            graphics=self.graphics,
+            **kwargs,
+        )
 
         self.add_scene_object(robot_name, obj_robot)
         self._robot_objs.append(obj_robot)
@@ -74,19 +100,9 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
     # ---------------------------------------------------------------
     def setup_scene(self, sim_data=None, sim_settings=None):
         """Set up the scene by initializing the grid and artists."""
-        self.pvqt.set_background("white")
+        apply_camera(self.pvqt, self.camera_config.resolved(self.dimension))
 
-        if self.dimension == 2:
-            self.pvqt.set_background("white")
-            self.pvqt.camera_position = "xy"
-            self.pvqt.camera.SetParallelProjection(True)
-            self.pvqt.enable_2d_style()
-        else:
-            self.pvqt.camera_position = "iso"
-            self.pvqt.camera.SetParallelProjection(False)
-            self.pvqt.enable_3_lights()
-
-        # Add a 3D reference grid
+        # Add a reference grid
         self.canvas_grid.setup_grid()
 
         # Reset camera
@@ -101,12 +117,9 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
     def reset_view(self) -> None:
         """Restore initial camera orientation, grid position, and fit the scene."""
         self.canvas_grid.reset()
-        if self.dimension == 2:
-            self.pvqt.camera_position = "xy"
-            self.pvqt.camera.SetParallelProjection(True)
-        else:
-            self.pvqt.camera_position = "iso"
-            self.pvqt.camera.SetParallelProjection(False)
+        cam = self.camera_config.resolved(self.dimension)
+        self.pvqt.camera_position = cam["position"]
+        self.pvqt.camera.SetParallelProjection(cam["parallel"])
         self.pvqt.reset_camera()
 
     # ---------------------------------------------------------------

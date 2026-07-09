@@ -83,12 +83,17 @@ Custom Matplotlib plotters can be loaded dynamically from a Python file via layo
 PyVista scene composition uses:
 
 - `SceneObject`
-- `SceneObjectBundle`
+- `SceneObjectGroup`
 
-These abstractions manage mesh + actor lifecycle and bundle hierarchical scene elements.
+These abstractions manage mesh + actor lifecycle and group hierarchical scene elements.
 
 ## Configuration
 
-Global runtime flags live in `src/ssl_vista/config.py`:
+Canvas-plotter configuration is grouped into typed pydantic models in
+`src/ssl_vista/plotters/pv_utils/configs.py` — `GridConfig`, `CameraConfig`,
+`GraphicsConfig`, `RobotConfig`. A plotter accepts each as a `grid`/`camera`/`robot`/
+`graphics` namespace (a model or a plain dict, e.g. from a layout's `args`) and forwards
+it whole to its sub-component, so options never need re-declaring on parent classes.
+`GraphicsConfig` replaces the former global `CONFIG["GRAPHICS"]` line-size defaults.
 
-- graphics constants under `GRAPHICS`
+`src/ssl_vista/config.py` (`CONFIG`) is now reserved for non-style global runtime flags.

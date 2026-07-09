@@ -5,23 +5,26 @@ __all__ = ["Axes", "Robot2D", "Robot3D", "SphereGrid"]
 import numpy as np
 import pyvista as pv
 
-from ssl_vista import CONFIG
-
+from ..configs import DEFAULT_GRAPHICS, GraphicsConfig
 from .base import SceneObject, SceneObjectGroup
 from .primitives import Icon2D, Icon3D, StraightLine, Trajectory
-
-GCONF = CONFIG["GRAPHICS"]
 
 
 class Axes(SceneObjectGroup):
     """The x/y/z attitude axes as a rigid group (posed via ``set_pose``)."""
 
-    def __init__(self, size: float = 1.0, axis_colors=None, **kwargs):
+    def __init__(
+        self,
+        size: float = 1.0,
+        axis_colors=None,
+        graphics: GraphicsConfig = DEFAULT_GRAPHICS,
+        **kwargs,
+    ):
         super().__init__()
         if axis_colors is None:
             axis_colors = {"x": "red", "y": "green", "z": "blue"}
 
-        kwargs["line_width"] = kwargs.get("line_width", GCONF["AXES_LINE_WIDTH"] * size)
+        kwargs.setdefault("line_width", graphics.axes_line_width * size)
         line_length = kwargs.pop("line_length", size)
 
         origin = np.zeros(3)
@@ -35,18 +38,21 @@ class Axes(SceneObjectGroup):
 class Robot2D(SceneObjectGroup):
     """A 2D robot: rigid icon + world-frame trajectory tail."""
 
-    def __init__(self, robot_type: str = "default", size: float = 1.0, traj_max_len=None, **kwargs):
+    def __init__(
+        self,
+        robot_type: str = "default",
+        size: float = 1.0,
+        traj_max_len=None,
+        graphics: GraphicsConfig = DEFAULT_GRAPHICS,
+        **kwargs,
+    ):
         super().__init__()
         self.icon = Icon2D(robot_type=robot_type, size=size)
         self.traj = Trajectory(max_len=traj_max_len)
 
-        self.add(
-            "trajectory",
-            self.traj,
-            follow_pose=False,
-            line_width=GCONF["ROBOT_TRAJECTORY_SIZE"] * size,
-            **kwargs,
-        )
+        # A caller-supplied line_width applies to the trajectory (icons are faces).
+        traj_lw = kwargs.pop("line_width", graphics.trajectory_size * size)
+        self.add("trajectory", self.traj, follow_pose=False, line_width=traj_lw, **kwargs)
         self.add("icon", self.icon, **kwargs)
 
     def set_traj_points(self, new_points: np.ndarray) -> None:
@@ -62,23 +68,20 @@ class Robot3D(SceneObjectGroup):
         axes: bool = True,
         size: float = 1.0,
         traj_max_len=None,
+        graphics: GraphicsConfig = DEFAULT_GRAPHICS,
         **kwargs,
     ):
         super().__init__()
         self.icon = Icon3D(robot_type=robot_type, size=size)
         self.traj = Trajectory(max_len=traj_max_len)
 
+        # A caller-supplied line_width applies to the trajectory (icons are faces).
+        traj_lw = kwargs.pop("line_width", graphics.trajectory_size * size)
         self.add("icon", self.icon, **kwargs)
-        self.add(
-            "trajectory",
-            self.traj,
-            follow_pose=False,
-            line_width=GCONF["ROBOT_TRAJECTORY_SIZE"] * size,
-            **kwargs,
-        )
+        self.add("trajectory", self.traj, follow_pose=False, line_width=traj_lw, **kwargs)
 
         if axes:
-            self.axes = Axes(size=size)
+            self.axes = Axes(size=size, graphics=graphics)
             self.add("axes", self.axes, recolor=False, **kwargs)
         else:
             self.axes = None

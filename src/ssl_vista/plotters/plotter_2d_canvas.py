@@ -4,30 +4,51 @@ import numpy as np
 import pyvista as pv
 
 from .base_canvas import BaseCanvasPlotter
+from .pv_utils.configs import RobotConfig
+
+_ROBOT_DEFAULTS = {"type": "unicycle", "color": "blue", "size": 0.25, "tail": 500}
 
 
 class Plotter2DCanvas(BaseCanvasPlotter):
     """
-    3D PyVista canvas for visualizing robots, trajectories, and vectors.
+    2D PyVista canvas for visualizing robots, trajectories, and vectors.
     """
 
     def __init__(
         self,
-        robot_type="unicycle",
-        robot_tail=500,
-        robot_color="blue",
-        robot_size=0.25,
+        *,
+        robot=None,
+        grid=None,
+        camera=None,
+        graphics=None,
         label_pos="robot.p",
         label_heading="robot.theta",
-        **kwargs,
+        parent=None,
+        context=None,
+        # deprecated flat aliases (use the `robot` namespace instead)
+        robot_type=None,
+        robot_tail=None,
+        robot_color=None,
+        robot_size=None,
     ):
-        super().__init__(dimension=2, sim_data_labels=None, **kwargs)
+        robot_cfg = RobotConfig.resolve(
+            robot,
+            defaults=_ROBOT_DEFAULTS,
+            type=robot_type,
+            tail=robot_tail,
+            color=robot_color,
+            size=robot_size,
+        )
+        super().__init__(
+            dimension=2, parent=parent, context=context,
+            grid=grid, camera=camera, graphics=graphics, robot=robot_cfg,
+        )
 
-        # - Robot parameters
-        self.robot_type = robot_type
-        self.robot_tail = robot_tail
-        self.robot_color = robot_color
-        self.robot_size = robot_size
+        # - Robot parameters (kept as attributes for init_artists/update_artists)
+        self.robot_type = self.robot_config.type
+        self.robot_tail = self.robot_config.tail
+        self.robot_color = self.robot_config.color
+        self.robot_size = self.robot_config.size
 
         # - Simulation data labels
         self.label_pos = label_pos

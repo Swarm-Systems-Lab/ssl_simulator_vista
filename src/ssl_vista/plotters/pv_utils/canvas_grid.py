@@ -3,27 +3,27 @@ __all__ = ["CanvasGrid"]
 import numpy as np
 import pyvista as pv
 
+from .configs import GridConfig
+
 
 class CanvasGrid:
-    def __init__(self, pv_plotter, dimension=2, grid_range=None, ticks=None, **kw_box_style):
+    def __init__(self, pv_plotter, dimension=2, config: GridConfig | dict | None = None):
         """
         Initializes the CanvasGrid object.
 
         Args:
             pv_plotter (pyvista.Plotter): The PyVista plotter instance.
             dimension (int): The dimensionality of the grid (2 or 3).
-            grid_range (tuple): The range of the grid in each dimension.
-            ticks (tuple): The number of ticks in each dimension.
+            config (GridConfig | dict | None): Grid range, ticks, and label style.
         """
 
         self.pv_plotter = pv_plotter
         self.dimension = dimension
-        # Provide sensible defaults if None
-        if grid_range is None:
-            grid_range = [5] * dimension
-        if ticks is None:
-            ticks = [5] * dimension
-        # Ensure range and ticks are lists of length 'dimension'
+        self.config = GridConfig.build(config)
+
+        # Range/ticks: default to 5, and broadcast a scalar across every dimension.
+        grid_range = self.config.range if self.config.range is not None else 5
+        ticks = self.config.ticks if self.config.ticks is not None else 5
         if isinstance(grid_range, (int, float)):
             grid_range = [grid_range] * dimension
         if isinstance(ticks, (int, float)):
@@ -33,16 +33,8 @@ class CanvasGrid:
         self.center = np.array([0.0] * dimension)
         self.mesh = None
 
-        # Style configuration for the grid
-        kw_box_style.setdefault("font_size", 10)
-        kw_box_style.setdefault("xtitle", "X")
-        kw_box_style.setdefault("ytitle", "Y")
-        kw_box_style.setdefault("ztitle", "Z")
-        kw_box_style.setdefault("bold", False)
-        kw_box_style.setdefault("color", "black")
-        kw_box_style.setdefault("grid", True)
-        kw_box_style.setdefault("minor_ticks", True)
-        self.kw_style = kw_box_style
+        # Style forwarded to show_bounds (font, titles, color, grid, minor ticks).
+        self.kw_style = self.config.show_bounds_style()
 
     def _create_2d(self):
         """
