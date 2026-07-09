@@ -67,6 +67,28 @@ class ExportFormat(Enum):
         return self in (ExportFormat.MP4_HQ, ExportFormat.MP4_SHARE, ExportFormat.WEBM)
 
 
+class ImageFormat(Enum):
+    PNG = "png"
+    JPEG = "jpeg"
+    WEBP = "webp"
+
+    def label(self) -> str:
+        return {
+            ImageFormat.PNG: "PNG (lossless)",
+            ImageFormat.JPEG: "JPEG (compressed)",
+            ImageFormat.WEBP: "WebP (small)",
+        }[self]
+
+    def extension(self) -> str:
+        return {ImageFormat.PNG: ".png", ImageFormat.JPEG: ".jpg", ImageFormat.WEBP: ".webp"}[self]
+
+    def pil_format(self) -> str:
+        return {ImageFormat.PNG: "PNG", ImageFormat.JPEG: "JPEG", ImageFormat.WEBP: "WEBP"}[self]
+
+    def is_lossy(self) -> bool:
+        return self in (ImageFormat.JPEG, ImageFormat.WEBP)
+
+
 # ---------------------------------------------------------------------------
 # Internal capture helpers
 # ---------------------------------------------------------------------------
@@ -337,6 +359,90 @@ class RecordingConfigDialog(QDialog):
         return self._path  # type: ignore[return-value]
 
 
+class ScreenshotConfigDialog(QDialog):
+    """Shown before a screenshot is taken: choose image format, quality, and output path."""
+
+    def __init__(self, default_stem: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowFlags(self.windowFlags() | Qt.Window)
+        self.setWindowTitle("Take Screenshot")
+        self.setMinimumWidth(460)
+        # Pre-populate with a timestamped default in the user's pictures directory
+        default_fmt = ImageFormat.PNG
+        self._path: Path | None = _pictures_dir() / f"{default_stem}{default_fmt.extension()}"
+
+        form = QFormLayout()
+
+        self._fmt = QComboBox()
+        for fmt in ImageFormat:
+            self._fmt.addItem(fmt.label(), userData=fmt)
+        self._fmt.setCurrentIndex(0)  # PNG as default
+        form.addRow("Format:", self._fmt)
+
+        self._quality = QSpinBox()
+        self._quality.setRange(1, 100)
+        self._quality.setValue(95)
+        self._quality.setToolTip("Only used for lossy formats (JPEG, WebP).")
+        form.addRow("Quality:", self._quality)
+
+        self._path_label = QLabel(str(self._path))
+        self._path_label.setWordWrap(True)
+        browse = QPushButton("Browse…")
+        browse.clicked.connect(self._browse)
+        path_row = QHBoxLayout()
+        path_row.addWidget(self._path_label, stretch=1)
+        path_row.addWidget(browse)
+        form.addRow("Output:", path_row)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self._on_accept)
+        buttons.rejected.connect(self.reject)
+
+        root = QVBoxLayout(self)
+        root.addLayout(form)
+        root.addWidget(buttons)
+
+        self._fmt.currentIndexChanged.connect(self._on_format_change)
+        self._on_format_change()  # sync extension + quality-enabled state
+
+    def _on_format_change(self) -> None:
+        """Keep path extension consistent and disable quality for lossless formats."""
+        fmt: ImageFormat = self._fmt.currentData()
+        self._quality.setEnabled(fmt.is_lossy())
+        if self._path is not None:
+            self._path = self._path.with_suffix(fmt.extension())
+            self._path_label.setText(str(self._path))
+
+    def _browse(self) -> None:
+        fmt: ImageFormat = self._fmt.currentData()
+        ext = fmt.extension().lstrip(".")
+        default = self._path or _pictures_dir() / f"{_default_stem()}{fmt.extension()}"
+        result = _save_dialog(
+            self,
+            "Save Screenshot As",
+            default.with_suffix(fmt.extension()),
+            [f"{ext.upper()} Images (*.{ext})", "All Files (*)"],
+        )
+        if result is not None:
+            self._path = result if result.suffix else result.with_suffix(fmt.extension())
+            self._path_label.setText(str(self._path))
+
+    def _on_accept(self) -> None:
+        if self._path is None:
+            QMessageBox.warning(self, "No Output Selected", "Please choose an output file.")
+            return
+        self.accept()
+
+    def format(self) -> ImageFormat:
+        return self._fmt.currentData()
+
+    def quality(self) -> int:
+        return self._quality.value()
+
+    def output_path(self) -> Path:
+        return self._path  # type: ignore[return-value]
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -368,31 +474,36 @@ class ExportManager:
     # ------------------------------------------------------------------
 
     def take_screenshot(self) -> None:
-        """Prompt for a save path and capture the current widget state."""
+        """Show the screenshot config dialog, then capture the current widget state.
+
+        Mirrors the recording flow: a config dialog with a format choice and a
+        timestamped default path, followed by a save confirmation.
+        """
         widget = self._get_widget()
         if widget is None:
             QMessageBox.warning(self._window, "Nothing to capture", "Load a simulation first.")
             return
-        default = _pictures_dir() / f"{_default_stem()}.png"
-        result = _save_dialog(
-            self._window,
-            "Save Screenshot",
-            default,
-            ["PNG Images (*.png)", "JPEG Images (*.jpg *.jpeg)", "All Files (*)"],
-        )
-        if result is None:
+
+        dlg = ScreenshotConfigDialog(_default_stem(), self._window)
+        if dlg.exec() != QDialog.Accepted:
             return
-        path = str(result)
+
+        fmt, quality, path = dlg.format(), dlg.quality(), dlg.output_path()
+
         from ssl_vista.ui.grid import SimulationGrid
 
         img = capture_grid(widget) if isinstance(widget, SimulationGrid) else _qt_grab_rgb(widget)
+        save_kwargs: dict[str, Any] = {"quality": quality} if fmt.is_lossy() else {}
         try:
-            Image.fromarray(img).save(path)
-            _logger.info("Screenshot saved: %s", path)
+            Image.fromarray(img).save(str(path), format=fmt.pil_format(), **save_kwargs)
         except Exception as exc:
             QMessageBox.critical(
                 self._window, "Screenshot Failed", f"Could not save to:\n{path}\n{exc}"
             )
+            return
+
+        _logger.info("Screenshot saved -> %s  (%s)", path, fmt.name)
+        QMessageBox.information(self._window, "Screenshot Saved", f"Saved to:\n{path}")
 
     # ------------------------------------------------------------------
     # Recording
@@ -440,7 +551,7 @@ class ExportManager:
         self._session = _RecordingSession(writer=writer, fmt=fmt, output_path=path, fps=fps)
         # Lock window size so every frame is the same resolution
         self._window.setFixedSize(self._window.size())
-        _logger.info("Recording started → %s  (%s @ %d fps)", path, fmt.name, fps)
+        _logger.info("Recording started -> %s  (%s @ %d fps)", path, fmt.name, fps)
         return True
 
     def capture_frame(self) -> None:
@@ -468,7 +579,7 @@ class ExportManager:
         # Restore normal resizing behaviour
         self._window.setMinimumSize(0, 0)
         self._window.setMaximumSize(16777215, 16777215)  # QWIDGETSIZE_MAX
-        _logger.info("Recording stopped: %d frames → %s", session.frame_count, session.output_path)
+        _logger.info("Recording stopped: %d frames -> %s", session.frame_count, session.output_path)
         QMessageBox.information(
             self._window,
             "Recording Saved",
