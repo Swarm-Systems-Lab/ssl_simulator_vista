@@ -1,8 +1,51 @@
-__all__ = ["create_geodesic", "create_sphere_grid", "latlon_to_xyz", "make_dashed_line"]
+__all__ = [
+    "clip_inside_sphere",
+    "create_geodesic",
+    "create_sphere_grid",
+    "latlon_to_xyz",
+    "make_dashed_line",
+]
 
 import numpy as np
 import pyvista as pv
 from ssl_simulator.math import unit_vec
+
+
+def clip_inside_sphere(mesh, radius, center=(0.0, 0.0, 0.0), invert=False):
+    """Clip a mesh to the region inside (or outside) a sphere.
+
+    Keeps the part of ``mesh`` whose points lie within ``radius`` of ``center``
+    (or the part outside, when ``invert=True``). The cut is interpolated along cell
+    edges (not a plain point mask), and the result is returned as surface
+    ``PolyData`` so it can replace an existing polydata actor's mesh.
+
+    Parameters
+    ----------
+    mesh : pv.DataSet
+        The mesh to clip.
+    radius : float
+        Radius of the clipping sphere.
+    center : array-like, optional
+        Centre of the clipping sphere (default origin).
+    invert : bool, optional
+        If ``True`` keep the outside instead of the inside.
+
+    Returns
+    -------
+    pv.PolyData
+        The clipped surface (may be empty if nothing survives the clip).
+    """
+    center = np.asarray(center, dtype=float)
+    work = mesh.copy()
+    work["_clip_dist"] = np.linalg.norm(work.points - center, axis=1)
+    # clip_scalar(invert=True) keeps scalars <= value, i.e. the inside.
+    clipped = work.clip_scalar(scalars="_clip_dist", value=radius, invert=not invert)
+    if clipped.n_points == 0:
+        return pv.PolyData()
+    surf = clipped.extract_surface(algorithm="dataset_surface")
+    if "_clip_dist" in surf.point_data:
+        surf.point_data.remove("_clip_dist")
+    return surf
 
 
 def create_sphere_grid(radius=1.0, lat_step=15, lon_step=15, lon_angles=None, resolution=360 // 4):

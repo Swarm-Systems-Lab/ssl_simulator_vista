@@ -7,6 +7,7 @@ in place and are meant to hold world-frame coordinates.
 """
 
 __all__ = [
+    "ClippedSphere",
     "Icon2D",
     "Icon3D",
     "Line",
@@ -180,3 +181,51 @@ class PointCloud(SceneObject):
     def set_points(self, points: np.ndarray) -> None:
         self._poly.points = np.asarray(points, dtype=float)
         self.mesh.shallow_copy(self._glyph())
+
+
+class ClippedSphere(SceneObject):
+    """A sphere shown only where it lies inside (or outside) a fixed clip sphere.
+
+    Useful e.g. to draw a geodesic ball around a moving point on the SO(3) ball and
+    keep only the portion within the manifold. The sphere is rebuilt and re-clipped
+    each time its centre moves, so it is driven by :meth:`set_center` (deformable),
+    not by ``set_pose`` (rigid).
+    """
+
+    def __init__(
+        self,
+        radius: float,
+        clip_radius: float,
+        clip_center=(0.0, 0.0, 0.0),
+        center=(0.0, 0.0, 0.0),
+        invert: bool = False,
+        theta_resolution: int = 40,
+        phi_resolution: int = 40,
+        **style,
+    ):
+        self.radius = radius
+        self.clip_radius = clip_radius
+        self.clip_center = np.asarray(clip_center, dtype=float)
+        self.invert = invert
+        self._theta = theta_resolution
+        self._phi = phi_resolution
+        self._center = np.asarray(center, dtype=float).reshape(-1)[:3]
+        super().__init__(mesh=self._build(self._center), **style)
+
+    def _build(self, center: np.ndarray) -> pv.PolyData:
+        from ..meshes import clip_inside_sphere
+
+        sphere = pv.Sphere(
+            radius=self.radius,
+            center=center,
+            theta_resolution=self._theta,
+            phi_resolution=self._phi,
+        )
+        return clip_inside_sphere(
+            sphere, self.clip_radius, center=self.clip_center, invert=self.invert
+        )
+
+    def set_center(self, center: np.ndarray) -> None:
+        """Move the sphere's centre and re-clip against the fixed clip sphere."""
+        self._center = np.asarray(center, dtype=float).reshape(-1)[:3]
+        self.update_mesh(self._build(self._center))

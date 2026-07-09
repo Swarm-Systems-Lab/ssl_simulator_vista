@@ -13,6 +13,7 @@ Public API:
 from .base import Drawable, SceneObject, SceneObjectGroup, pose_matrix
 from .composites import Axes, Robot2D, Robot3D, SphereGrid
 from .primitives import (
+    ClippedSphere,
     Icon2D,
     Icon3D,
     Line,
@@ -27,6 +28,7 @@ from .primitives import (
 
 __all__ = [
     "Axes",
+    "ClippedSphere",
     "Drawable",
     "Icon2D",
     "Icon3D",
