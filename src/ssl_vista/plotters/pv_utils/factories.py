@@ -44,8 +44,7 @@ class RobotFactory:
 
     @classmethod
     def pose_fields(cls, robot_type="default", dimension=2):
-        """Return the pose inputs a robot type consumes, as a tuple of field names.
-        """
+        """Return the pose inputs a robot type consumes, as a tuple of field names."""
         try:
             return cls._POSE_FIELDS[dimension][robot_type]
         except KeyError:
