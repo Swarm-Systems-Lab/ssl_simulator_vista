@@ -10,6 +10,7 @@ __all__ = [
     "ClippedSphere",
     "Icon2D",
     "Icon3D",
+    "Label",
     "Line",
     "Marker",
     "Mesh",
@@ -24,7 +25,47 @@ import numpy as np
 import pyvista as pv
 
 from ..factories import RobotFactory
-from .base import SceneObject
+from .base import Drawable, SceneObject
+
+
+class Label(Drawable):
+    """Billboard text anchored at fixed 3D points (via ``add_point_labels``).
+
+    Screen-facing text that stays legible from any camera angle — used for static
+    annotations such as axis labels. Not affected by ``set_pose``.
+    """
+
+    def __init__(self, points, labels, font_size: int = 18, text_color="black", **kwargs):
+        self.points = np.atleast_2d(np.asarray(points, dtype=float))
+        self.labels = [str(x) for x in labels]
+        self.font_size = font_size
+        self.text_color = text_color
+        self._visible = bool(kwargs.pop("visible", True))
+        self._kwargs = kwargs
+        self.actor = None
+
+    def _attach(self, pvqt, name: str):
+        self.actor = pvqt.add_point_labels(
+            self.points,
+            self.labels,
+            font_size=self.font_size,
+            text_color=self.text_color,
+            shape=None,
+            show_points=False,
+            always_visible=True,
+            **self._kwargs,
+        )
+        self.actor.SetVisibility(self._visible)
+        return [(name, self)]
+
+    def _set_world_pose(self, matrix: np.ndarray) -> None:
+        # Labels are anchored to fixed points; pose changes do not move them.
+        pass
+
+    def set_visibility(self, visible: bool) -> None:
+        self._visible = bool(visible)
+        if self.actor is not None:
+            self.actor.SetVisibility(self._visible)
 
 
 class Mesh(SceneObject):
@@ -125,21 +166,65 @@ class Trajectory(Line):
 
 
 class StraightLine(SceneObject):
-    """A fixed two-point segment (used as a rigid building block, e.g. axes)."""
+    """A fixed two-point segment (used as a rigid building block, e.g. axes).
 
-    def __init__(self, start: np.ndarray, end: np.ndarray, **kwargs):
-        super().__init__(mesh=pv.Line(start, end), **kwargs)
+    With ``tube_radius=None`` it renders as a ``pv.Line`` whose thickness is the
+    screen-space ``line_width`` (constant in pixels, independent of zoom). Give a
+    ``tube_radius`` to render it as a 3-D tube instead, so its thickness is in world
+    units and scales with the camera like a mesh.
+    """
+
+    def __init__(
+        self,
+        start: np.ndarray,
+        end: np.ndarray,
+        tube_radius: float | None = None,
+        tube_sides: int = 12,
+        **kwargs,
+    ):
+        mesh = pv.Line(start, end)
+        if tube_radius is not None:
+            mesh = mesh.tube(radius=tube_radius, n_sides=tube_sides)
+        super().__init__(mesh=mesh, **kwargs)
 
 
 class Vector(SceneObject):
-    """A single arrow (wrapper around ``pv.Arrow``)."""
+    """A single arrow (wrapper around ``pv.Arrow``).
 
-    def __init__(self, origin: np.ndarray, direction: np.ndarray, scale: float = 1.0, **kwargs):
+    ``thickness`` scales the arrow's radial size (shaft + tip radius); the ``pv.Arrow``
+    defaults are ``thickness=1.0``. ``tip_length`` / ``tip_radius`` / ``shaft_radius``
+    can override the geometry directly (they take precedence over ``thickness``).
+    """
+
+    _SHAFT_RADIUS = 0.05  # pv.Arrow defaults, as a fraction of arrow length
+    _TIP_RADIUS = 0.10
+
+    def __init__(
+        self,
+        origin: np.ndarray,
+        direction: np.ndarray,
+        scale: float = 1.0,
+        thickness: float = 1.0,
+        tip_length: float = 0.25,
+        tip_radius: float | None = None,
+        shaft_radius: float | None = None,
+        **kwargs,
+    ):
         self.scale = scale
-        super().__init__(mesh=pv.Arrow(start=origin, direction=direction, scale=scale), **kwargs)
+        self._arrow_kwargs = {
+            "tip_length": tip_length,
+            "tip_radius": self._TIP_RADIUS * thickness if tip_radius is None else tip_radius,
+            "shaft_radius": self._SHAFT_RADIUS * thickness
+            if shaft_radius is None
+            else shaft_radius,
+        }
+        super().__init__(mesh=self._make_arrow(origin, direction), **kwargs)
+
+    def _make_arrow(self, origin: np.ndarray, direction: np.ndarray) -> pv.PolyData:
+        return pv.Arrow(start=origin, direction=direction, scale=self.scale, **self._arrow_kwargs)
 
     def update_vector(self, origin: np.ndarray, direction: np.ndarray) -> None:
-        self.update_mesh(pv.Arrow(start=origin, direction=direction, scale=self.scale))
+        self.update_mesh(self._make_arrow(origin, direction))
 
 
 class VectorField(SceneObject):

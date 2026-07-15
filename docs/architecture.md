@@ -94,6 +94,5 @@ Canvas-plotter configuration is grouped into typed pydantic models in
 `GraphicsConfig`, `RobotConfig`. A plotter accepts each as a `grid`/`camera`/`robot`/
 `graphics` namespace (a model or a plain dict, e.g. from a layout's `args`) and forwards
 it whole to its sub-component, so options never need re-declaring on parent classes.
-`GraphicsConfig` replaces the former global `CONFIG["GRAPHICS"]` line-size defaults.
 
-`src/ssl_vista/config.py` (`CONFIG`) is now reserved for non-style global runtime flags.
+`src/ssl_vista/config.py` (`CONFIG`) is reserved for non-style global runtime flags.

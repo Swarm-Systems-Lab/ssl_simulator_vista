@@ -64,7 +64,7 @@ class GridConfig(_BaseConfig):
             "bold": self.bold,
             "color": self.color,
             "grid": self.grid,
-            "minor_ticks": self.minor_ticks
+            "minor_ticks": self.minor_ticks,
         }
 
 
@@ -93,7 +93,7 @@ class CameraConfig(_BaseConfig):
 
 
 class GraphicsConfig(_BaseConfig):
-    """Default line sizes for scene objects (replaces the old global ``GCONF``)."""
+    """Default line sizes for scene objects."""
 
     axes_line_width: float = 4.0
     axes_line_length: float = 0.3

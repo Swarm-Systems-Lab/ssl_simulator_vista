@@ -6,16 +6,18 @@ Public API:
   and the :func:`pose_matrix` helper.
 - Primitives: :class:`Mesh`, :class:`Marker`, :class:`PointCloud`, :class:`Line`,
   :class:`Trajectory`, :class:`StraightLine`, :class:`Vector`, :class:`VectorField`,
-  :class:`Icon2D`, :class:`Icon3D`.
-- Composites: :class:`Axes`, :class:`Robot2D`, :class:`Robot3D`, :class:`SphereGrid`.
+  :class:`Label`, :class:`Icon2D`, :class:`Icon3D`.
+- Composites: :class:`Axes`, :class:`Robot2D`, :class:`Robot3D`, :class:`Sphere`,
+  :class:`SphereGrid`.
 """
 
 from .base import Drawable, SceneObject, SceneObjectGroup, pose_matrix
-from .composites import Axes, Robot2D, Robot3D, SphereGrid
+from .composites import Axes, Robot2D, Robot3D, Sphere, SphereGrid
 from .primitives import (
     ClippedSphere,
     Icon2D,
     Icon3D,
+    Label,
     Line,
     Marker,
     Mesh,
@@ -32,6 +34,7 @@ __all__ = [
     "Drawable",
     "Icon2D",
     "Icon3D",
+    "Label",
     "Line",
     "Marker",
     "Mesh",
@@ -40,6 +43,7 @@ __all__ = [
     "Robot3D",
     "SceneObject",
     "SceneObjectGroup",
+    "Sphere",
     "SphereGrid",
     "StraightLine",
     "Trajectory",

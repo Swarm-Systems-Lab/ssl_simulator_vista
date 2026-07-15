@@ -17,7 +17,14 @@ def test_grid_defaults_and_style_keys():
     assert cfg.range is None and cfg.ticks is None
     style = cfg.show_bounds_style()
     assert set(style) == {
-        "font_size", "xtitle", "ytitle", "ztitle", "bold", "color", "grid", "minor_ticks"
+        "font_size",
+        "xtitle",
+        "ytitle",
+        "ztitle",
+        "bold",
+        "color",
+        "grid",
+        "minor_ticks",
     }
     assert style["font_size"] == 15 and style["color"] == "black"
 

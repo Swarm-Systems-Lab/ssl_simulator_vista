@@ -25,23 +25,16 @@ class Plotter2DCanvas(BaseCanvasPlotter):
         label_heading="robot.theta",
         parent=None,
         context=None,
-        # deprecated flat aliases (use the `robot` namespace instead)
-        robot_type=None,
-        robot_tail=None,
-        robot_color=None,
-        robot_size=None,
     ):
-        robot_cfg = RobotConfig.resolve(
-            robot,
-            defaults=_ROBOT_DEFAULTS,
-            type=robot_type,
-            tail=robot_tail,
-            color=robot_color,
-            size=robot_size,
-        )
+        robot_cfg = RobotConfig.resolve(robot, defaults=_ROBOT_DEFAULTS)
         super().__init__(
-            dimension=2, parent=parent, context=context,
-            grid=grid, camera=camera, graphics=graphics, robot=robot_cfg,
+            dimension=2,
+            parent=parent,
+            context=context,
+            grid=grid,
+            camera=camera,
+            graphics=graphics,
+            robot=robot_cfg,
         )
 
         # - Robot parameters (kept as attributes for init_artists/update_artists)
