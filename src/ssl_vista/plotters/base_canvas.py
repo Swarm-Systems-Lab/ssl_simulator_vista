@@ -1,11 +1,14 @@
 __all__ = ["BaseCanvasPlotter"]
 
+from typing import ClassVar
+
 import numpy as np
 import pyvista as pv
 
 from ._base_plotters import _BaseVisualPlotter
 from .pv_utils.canvas_grid import CanvasGrid
 from .pv_utils.configs import CameraConfig, GraphicsConfig, GridConfig, RobotConfig
+from .pv_utils.factories import RobotFactory
 from .pv_utils.scene import Robot2D, Robot3D
 
 
@@ -32,10 +35,17 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
     (e.g. from a layout file's ``args``). Each namespace is forwarded whole to its
     sub-component, so options never need re-declaring on this class.
 
-    Subclasses should:
-      - Implement `init_artists(self, sim_data, sim_settings)` to define the scene's artists.
-      - Implement `update_artists(self, sim_data, idx)` to update the scene's artists.
+    The robot *type* dictates which simulation fields are required (see
+    :meth:`RobotFactory.pose_fields`): every type needs positions, and directional
+    types additionally need an orientation — a planar ``heading`` in 2D or a rotation
+    matrix (``rotation``) in 3D. Symmetric types (e.g. ``single_integrator``) are drawn
+    from position alone. This policy and the shared ``init_artists`` / ``update_artists``
+    lifecycle live here; concrete subclasses only supply the small dimension-specific
+    hooks below (``_pose_kwargs``, ``_check_orientation_shape``, ``_robot_build_kwargs``).
     """
+
+    #: Name of the orientation field per dimension, as used by ``RobotFactory.pose_fields``.
+    _ORIENTATION_FIELD: ClassVar[dict[int, str]] = {2: "heading", 3: "rotation"}
 
     def __init__(
         self,
@@ -48,6 +58,8 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         camera=None,
         robot=None,
         graphics=None,
+        label_pos="robot.p",
+        label_orientation=None,
     ):
         super().__init__(parent=parent, context=context)
 
@@ -61,8 +73,113 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         self.graphics = GraphicsConfig.build(graphics)
         self.robot_config = RobotConfig.build(robot)
 
+        # - Type-driven data contract: what fields this platform consumes.
+        self.robot_type = self.robot_config.type
+        self.required_fields = RobotFactory.pose_fields(self.robot_type, dimension)
+        self.orientation_field = self._ORIENTATION_FIELD[dimension]
+        self.needs_orientation = self.orientation_field in self.required_fields
+
+        # - Simulation data labels. A symmetric icon ignores orientation, so drop its
+        #   label entirely — a single-integrator run isn't forced to provide it.
+        self.label_pos = label_pos
+        self.label_orientation = label_orientation if self.needs_orientation else None
+
         # - Canvas grid (whole grid namespace forwarded)
         self.canvas_grid = CanvasGrid(self.pvqt, dimension=dimension, config=self.grid_config)
+
+    # ---------------------------------------------------------------
+    # SUBCLASS HOOKS (dimension-specific bits)
+    # ---------------------------------------------------------------
+    def _pose_kwargs(self, orientation_value) -> dict:
+        """Map an orientation sample to the ``set_pose`` kwargs for this dimension
+        (2D: ``{"heading": ...}``, 3D: ``{"R": ...}``)."""
+        raise NotImplementedError
+
+    def _check_orientation_shape(self, arr, n_robots) -> None:
+        """Validate the orientation array's shape; raise ``ValueError`` if wrong."""
+        raise NotImplementedError
+
+    def _robot_build_kwargs(self) -> dict:
+        """Extra per-robot kwargs for :meth:`add_robot` (e.g. 3D ``axes``)."""
+        return {}
+
+    # ---------------------------------------------------------------
+    # ARTISTS (shared lifecycle, driven by the hooks above)
+    # ---------------------------------------------------------------
+    def init_artists(self, sim_data, sim_settings):
+        """Build robot icons + trajectory placeholders and pose them at frame 0."""
+        self._check_labels(sim_data)
+        self._check_data_shapes(sim_data)
+
+        data_pos = sim_data.get(self.label_pos)
+        data_orient = self._get_orientation(sim_data)
+        n_robots = data_pos.shape[1]
+
+        for i in range(n_robots):
+            obj_robot = self.add_robot(
+                robot_name=f"robot_{i}",
+                icon_type=self.robot_type,
+                color=self.robot_config.color,
+                size=self.robot_config.size,
+                traj_max_len=self.robot_config.tail,
+                **self._robot_build_kwargs(),
+            )
+            pose_kw = self._pose_kwargs(data_orient[0, i]) if data_orient is not None else {}
+            obj_robot.set_pose(position=data_pos[0, i], **pose_kw)
+
+    def update_artists(self, sim_data, idx):
+        """Update robot poses and trajectory tails for frame ``idx``."""
+        data_pos = sim_data.get(self.label_pos)
+        data_orient = self._get_orientation(sim_data)
+
+        for i, robot_obj in enumerate(self._robot_objs):
+            pose_kw = self._pose_kwargs(data_orient[idx, i]) if data_orient is not None else {}
+            robot_obj.set_pose(position=data_pos[idx, i], **pose_kw)
+
+            # Full history; the trajectory trims itself to traj_max_len.
+            robot_obj.set_traj_points(data_pos[0:idx, i, :])
+            robot_obj.set_visibility(True)
+
+        # - Update the canvas grid center
+        new_center = np.array([data_pos[idx, ...].mean(axis=0).tolist()])
+        self.set_grid_centroid(new_center)
+
+    # ---------------------------------------------------------------
+    # DATA ACCESS / SANITY CHECKS (shared)
+    # ---------------------------------------------------------------
+    def _get_orientation(self, sim_data):
+        """Return the orientation array, or ``None`` when this platform doesn't use one."""
+        if not self.needs_orientation:
+            return None
+        return sim_data.get(self.label_orientation)
+
+    def _check_labels(self, sim_data):
+        """Ensure the labels this robot type requires are present in sim_data."""
+        if self.label_pos not in sim_data:
+            raise ValueError(f"sim_data must contain positions at '{self.label_pos}'")
+
+        if self.needs_orientation:
+            if self.label_orientation is None:
+                raise ValueError(
+                    f"Robot type '{self.robot_type}' is directional and requires a "
+                    f"{self.orientation_field}, but its label was set to None."
+                )
+            if self.label_orientation not in sim_data:
+                raise ValueError(
+                    f"Robot type '{self.robot_type}' requires a {self.orientation_field} at "
+                    f"'{self.label_orientation}', which is missing from sim_data."
+                )
+
+    def _check_data_shapes(self, sim_data):
+        """Ensure required data arrays have the expected shapes."""
+        data_pos = sim_data.get(self.label_pos)
+        if data_pos.ndim != 3 or data_pos.shape[2] != self.dimension:
+            raise ValueError(
+                f"Positions array must be shape (T,N,{self.dimension}), got {data_pos.shape}"
+            )
+
+        if self.needs_orientation:
+            self._check_orientation_shape(sim_data.get(self.label_orientation), data_pos.shape[1])
 
     # ---------------------------------------------------------------
     # ARTISTS MANAGEMENT

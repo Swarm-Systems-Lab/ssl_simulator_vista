@@ -5,8 +5,7 @@
       "type": "Plotter2DCanvas",
       "position": [0, 0],
       "args": {
-        "robot_type": "unicycle",
-        "robot_color": "blue"
+        "robot": {"type": "unicycle", "color": "blue"}
       }
     },
     {

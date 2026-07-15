@@ -1,5 +1,7 @@
 __all__ = ["RobotFactory"]
 
+from typing import ClassVar
+
 import numpy as np
 import pyvista as pv
 
@@ -12,6 +14,25 @@ class RobotFactory:
     Automatically handles 2D and 3D versions depending on context.
     """
 
+    #: Pose inputs each robot icon consumes, keyed by dimension then type
+    _POSE_FIELDS: ClassVar[dict[int, dict[str, tuple[str, ...]]]] = {
+        2: {
+            "default": ("position",),
+            "single_integrator": ("position",),
+            "unicycle": ("position", "heading"),
+            "car": ("position", "heading"),
+            "fixed_wing": ("position", "heading"),
+        },
+        3: {
+            "default": ("position",),
+            "single_integrator": ("position",),
+            "unicycle": ("position", "rotation"),
+            "car": ("position", "rotation"),
+            "quadrotor": ("position", "rotation"),
+            "miniplank": ("position", "rotation"),
+        },
+    }
+
     def __init__(self, dimension=2):
         """
         Parameters
@@ -20,6 +41,18 @@ class RobotFactory:
             2 for 2D shapes (XY plane), 3 for 3D shapes.
         """
         self.dimension = dimension
+
+    @classmethod
+    def pose_fields(cls, robot_type="default", dimension=2):
+        """Return the pose inputs a robot type consumes, as a tuple of field names.
+        """
+        try:
+            return cls._POSE_FIELDS[dimension][robot_type]
+        except KeyError:
+            known = ", ".join(sorted(cls._POSE_FIELDS.get(dimension, {})))
+            raise ValueError(
+                f"Unknown {dimension}D robot type '{robot_type}'. Known types: [{known}]"
+            ) from None
 
     def create(self, robot_type="default", **kwargs):
         """Return a simple PolyData mesh for the specified robot type."""
