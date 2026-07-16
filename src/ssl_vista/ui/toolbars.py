@@ -27,7 +27,7 @@ class SimulationToolbar(QToolBar):
         self.setMovable(True)
         self.sim_file_path = None
         self.grid_file_path = None
-        self._last_csv_dir = str(Path.cwd())
+        self._last_data_dir = str(Path.cwd())
         self._last_grid_dir = str(Path.cwd())
 
         font = QFont()
@@ -38,14 +38,14 @@ class SimulationToolbar(QToolBar):
         # Files menu button (hamburger)
         # ------------------------------------------------------------------
         self.load_grid_action = QAction("Load Grid Layout", self)
-        self.load_csv_action = QAction("Load CSV", self)
-        self.reload_csv_action = QAction("Reload CSV", self)
+        self.load_data_action = QAction("Load Data", self)
+        self.reload_data_action = QAction("Reload Data", self)
 
         files_menu = QMenu(self)
         files_menu.addAction(self.load_grid_action)
         files_menu.addSeparator()
-        files_menu.addAction(self.load_csv_action)
-        files_menu.addAction(self.reload_csv_action)
+        files_menu.addAction(self.load_data_action)
+        files_menu.addAction(self.reload_data_action)
 
         self.files_button = QToolButton(self)
         self.files_button.setIcon(make_icon("files_menu"))
@@ -97,21 +97,24 @@ class SimulationToolbar(QToolBar):
         # ------------------------------------------------------------------
         # Connections
         # ------------------------------------------------------------------
-        self.load_csv_action.triggered.connect(self._on_load_file)
+        self.load_data_action.triggered.connect(self._on_load_file)
         self.load_grid_action.triggered.connect(self._on_load_grid_layout)
 
     # ----------------------------------------------------------------------
     # METHODS
     # ----------------------------------------------------------------------
     def _on_load_file(self):
-        """Prompt user to load a simulation data CSV file."""
+        """Prompt user to load a simulation data file."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Simulation File", self._last_csv_dir, "CSV Files (*.csv);;All Files (*)"
+            self,
+            "Select Simulation File",
+            self._last_data_dir,
+            "Data Files (*.csv *.npz *.h5 *.hdf5);;All Files (*)",
         )
         if not file_path:
             return
 
-        self._last_csv_dir = str(Path(file_path).parent)
+        self._last_data_dir = str(Path(file_path).parent)
         self.sim_file_path = file_path
         self.sim_file_loaded.emit(file_path)
 

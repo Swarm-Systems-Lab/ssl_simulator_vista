@@ -14,8 +14,8 @@ The framework lifecycle methods that the grid driver actually calls
 (`setup_scene`, `reset_scene`, `update_all_scene_objects`) are provided by the backend
 base class and wired to `init_artists` / `update_artists` for you:
 
-- `reset_scene` → clears existing artists, calls `init_artists`, fits the camera.
-- `update_all_scene_objects` → calls `update_artists`, then renders.
+- `reset_scene` -> clears existing artists, calls `init_artists`, fits the camera.
+- `update_all_scene_objects` -> calls `update_artists`, then renders.
 
 You normally only override `setup_scene` (one-time, data-independent camera/lights/grid).
 This uniform shape is what lets a new backend base class drop in and reuse existing

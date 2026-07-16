@@ -66,9 +66,9 @@ class MainWindow(QMainWindow):
         self.time_slider = self.simulation_toolbar.time_slider
         self.time_label = self.simulation_toolbar.time_label
 
-        self.simulation_toolbar.sim_file_loaded.connect(self.load_csv)
+        self.simulation_toolbar.sim_file_loaded.connect(self.load_data)
         self.simulation_toolbar.grid_layout_requested.connect(self.load_grid_layout)
-        self.simulation_toolbar.reload_csv_action.triggered.connect(self.reload_csv)
+        self.simulation_toolbar.reload_data_action.triggered.connect(self.reload_data)
         self.simulation_toolbar.play_action.triggered.connect(self.play_simulation)
         self.simulation_toolbar.stop_action.triggered.connect(self.stop_simulation)
         self.simulation_toolbar.reset_action.triggered.connect(self.reset_simulation)
@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
         self.current_time_index = 0
 
         # --- Timers ---
-        # Key press delay timer (200 ms delay)
+        # Key press delay timer
         self.key_press_timer = QTimer(self)
         self.key_press_timer.setSingleShot(True)
         self.key_press_timer.setInterval(animation_period)
@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
             if layout is not None:
                 self.load_grid_layout(layout)
             if data_path is not None:
-                self.load_csv(data_path)
+                self.load_data(data_path)
 
     def handle_key_press(self, event):
         """Handle key press events."""
@@ -177,7 +177,7 @@ class MainWindow(QMainWindow):
             self.grid = None
 
     def load_grid_layout(self, file_path: str) -> None:
-        """Load a new grid layout from file, then reload any active CSV into it."""
+        """Load a new grid layout from file, then reload any active data file into it."""
         self.clear_current_grid()
 
         # Read layout info and set as central widget
@@ -190,7 +190,7 @@ class MainWindow(QMainWindow):
 
         # Re-feed existing data into the new layout (error is shown to user on mismatch)
         if self.sim_file_path is not None:
-            self.process_csv()
+            self.process_data()
 
     def _load_grid_direct(self, grid: SimulationGrid) -> None:
         """Programmatic counterpart to :meth:`load_grid_layout`.
@@ -211,11 +211,11 @@ class MainWindow(QMainWindow):
         self.grid.timer_set(self.next_simulation_step, step=self.animation_period)
 
     def _load_sim_direct(self, sim_data: SimData, sim_settings: SimSettings) -> None:
-        """Programmatic counterpart to :meth:`process_csv`.
+        """Programmatic counterpart to :meth:`process_data`.
 
         Injects pre-parsed simulation data (the same structures that
         :func:`~ssl_simulator.utils.processing.load_sim` returns) without
-        requiring a CSV file on disk.
+        requiring a data file on disk.
 
         Parameters
         ----------
@@ -240,8 +240,8 @@ class MainWindow(QMainWindow):
     # ---------------------------------------------------------------
     # FILE LOADING METHODS
     # ---------------------------------------------------------------
-    def load_csv(self, file_path):
-        """Load simulation data from a CSV file."""
+    def load_data(self, file_path):
+        """Load simulation data from a data file."""
         if self.grid is None:
             QMessageBox.information(
                 self, "Grid NOT Loaded", "Please load a grid layout before loading simulation data."
@@ -249,15 +249,15 @@ class MainWindow(QMainWindow):
             return
         if file_path:
             self.sim_file_path = file_path
-            self.process_csv()
+            self.process_data()
 
-    def reload_csv(self):
-        """Reload the currently loaded CSV file."""
+    def reload_data(self):
+        """Reload the currently loaded data file."""
         if self.sim_file_path is not None:
-            self.process_csv()
+            self.process_data()
 
-    def process_csv(self):
-        """Process the loaded CSV data, rolling back on incompatibility."""
+    def process_data(self):
+        """Process the loaded data file, rolling back on incompatibility."""
         if self.sim_file_path is None:
             return
 
@@ -282,7 +282,7 @@ class MainWindow(QMainWindow):
             self.sim_time = prev_time
             if prev_time is not None:
                 self.time_slider.setRange(0, len(prev_time) - 1)
-            _logger.error("CSV load failed: %s", exc)
+            _logger.error("Data load failed: %s", exc)
 
             # Re-initialise plotters with the previous data so they are in a
             # consistent state — reset_scenes may have partially run before

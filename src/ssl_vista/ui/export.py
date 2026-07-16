@@ -127,8 +127,8 @@ def capture_grid(grid: SimulationGrid) -> np.ndarray:
 
     QWidget.grab() misses OpenGL content rendered by PyVista's VTK backend.
     This function uses the native capture path for each plotter type:
-    - _BaseVisualPlotter → pvqt.screenshot(return_img=True) via VTK
-    - BaseMplPlotter     → canvas.buffer_rgba() via matplotlib
+    - _BaseVisualPlotter -> pvqt.screenshot(return_img=True) via VTK
+    - BaseMplPlotter     -> canvas.buffer_rgba() via matplotlib
     then composites them onto a canvas sized to the full grid widget.
     """
     from ssl_vista.plotters._base_plotters import _BaseVisualPlotter

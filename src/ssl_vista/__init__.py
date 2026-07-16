@@ -28,7 +28,13 @@ __all__ = [
 
 # Public, dependency-light layout API (no Qt / PyVista).
 _LAYOUT_PUBLIC_API = frozenset(
-    {"GridLayoutConfig", "LayoutBuilder", "LayoutSchemaError", "PlotterConfig", "parse_layout_config"}
+    {
+        "GridLayoutConfig",
+        "LayoutBuilder",
+        "LayoutSchemaError",
+        "PlotterConfig",
+        "parse_layout_config",
+    }
 )
 
 
