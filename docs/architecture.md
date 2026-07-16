@@ -7,7 +7,7 @@ This page describes how `ssl_vista` runs from CLI command to frame rendering.
 1. `sslvista` CLI parses arguments (`src/ssl_vista/cli.py`)
 2. `run_app(...)` creates the Qt application (`src/ssl_vista/app.py`)
 3. `MainWindow` loads layout and optional CSV (`src/ssl_vista/ui/main_window.py`)
-4. Layout JSON is schema-validated (`src/ssl_vista/ui/layout_schema.py`)
+4. Layout JSON is schema-validated (`src/ssl_vista/ui/layout.py`)
 5. `SimulationGrid` builds plotter widgets from validated config (`src/ssl_vista/ui/grid.py`)
 6. Plotter classes are resolved via registry (`src/ssl_vista/plotters/registry.py`)
 7. Plotters set up scenes and update per frame (`src/ssl_vista/plotters/*`)

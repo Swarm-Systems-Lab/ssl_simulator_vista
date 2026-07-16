@@ -12,18 +12,33 @@ __all__ = [
     "CONFIG",
     "BaseCanvasPlotter",
     "BaseMplPlotter",
+    "GridLayoutConfig",
     "GridSpec",
+    "LayoutBuilder",
+    "LayoutSchemaError",
+    "PlotterConfig",
     "PlotterSpec",
     "SimData",
     "SimSettings",
     "load_grid_from_json",
     "load_grid_from_spec",
+    "parse_layout_config",
     "run_app",
 ]
+
+# Public, dependency-light layout API (no Qt / PyVista).
+_LAYOUT_PUBLIC_API = frozenset(
+    {"GridLayoutConfig", "LayoutBuilder", "LayoutSchemaError", "PlotterConfig", "parse_layout_config"}
+)
 
 
 def __getattr__(name: str):
     """Lazily resolve Qt-dependent names to avoid circular imports at package load time."""
+    if name in _LAYOUT_PUBLIC_API:
+        from . import layout
+
+        return getattr(layout, name)
+
     if name == "run_app":
         from .app import run_app
 

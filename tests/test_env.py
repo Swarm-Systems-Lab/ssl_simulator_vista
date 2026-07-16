@@ -27,6 +27,15 @@ GUI_MODULES = [
 
 REQUIRED_MODULES = BASIC_MODULES + GUI_MODULES
 
+# A Qt/OpenGL display is needed to actually *use* the GUI stack (importing the
+# bindings is fine, but loading an interactive backend is not). Treat the run as
+# headless when neither an X11 nor a Wayland display is advertised — this covers
+# local headless shells as well as CI, so it no longer keys off the CI env var.
+_HEADLESS = not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+_requires_display = pytest.mark.skipif(
+    _HEADLESS, reason="no display available (headless environment)"
+)
+
 
 @pytest.mark.parametrize("module_name", BASIC_MODULES)
 def test_import_module(module_name):
@@ -35,12 +44,9 @@ def test_import_module(module_name):
 
 
 @pytest.mark.parametrize("module_name", GUI_MODULES)
-@pytest.mark.skipif(
-    not os.environ.get("DISPLAY") and os.environ.get("CI") == "true",
-    reason="Skipping GUI tests in headless CI environment",
-)
+@_requires_display
 def test_import_gui_module(module_name):
-    """Test that GUI modules can be imported (skipped in headless CI)."""
+    """Test that GUI modules can be imported (skipped in headless environments)."""
     importlib.import_module(module_name)
 
 
@@ -50,10 +56,7 @@ def test_python_version():
     assert (major, minor) >= (3, 8), f"Python 3.8+ required, found {major}.{minor}"
 
 
-@pytest.mark.skipif(
-    not os.environ.get("DISPLAY") and os.environ.get("CI") == "true",
-    reason="Skipping GUI tests in headless CI environment",
-)
+@_requires_display
 def test_pyvista_qt_import():
     """Test that pyvistaqt can be imported and used."""
     import pyvistaqt
@@ -61,10 +64,7 @@ def test_pyvista_qt_import():
     assert hasattr(pyvistaqt, "BackgroundPlotter")
 
 
-@pytest.mark.skipif(
-    not os.environ.get("DISPLAY") and os.environ.get("CI") == "true",
-    reason="Skipping GUI tests in headless CI environment",
-)
+@_requires_display
 def test_matplotlib_backend():
     """Test that matplotlib can use the Qt5Agg backend."""
     import matplotlib

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ssl_vista.ui.layout_schema import LayoutSchemaError, parse_layout_config
+from ssl_vista.layout import LayoutSchemaError, parse_layout_config
 
 
 def test_parse_layout_config_minimal_defaults():

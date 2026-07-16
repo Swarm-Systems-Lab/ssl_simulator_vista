@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QSplitter, QVBoxLayout, QWidget
 from ssl_vista.plotters import _BasePlotter
 from ssl_vista.plotters.registry import create_plotter_instance
 
-from .layout_schema import parse_layout_config
+from ..layout import parse_layout_config
 
 if TYPE_CHECKING:
     from ssl_vista.types import GridSpec
