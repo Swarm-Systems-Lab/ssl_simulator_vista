@@ -23,8 +23,8 @@ class Plotter3DCanvas(BaseCanvasPlotter):
         grid=None,
         camera=None,
         graphics=None,
-        label_pos="robot.p",
-        label_rot="robot.R",
+        label_pos="p",
+        label_rot="R",
         parent=None,
         context=None,
     ):

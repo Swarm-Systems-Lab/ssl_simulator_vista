@@ -23,8 +23,8 @@ class Plotter2DCanvas(BaseCanvasPlotter):
         grid=None,
         camera=None,
         graphics=None,
-        label_pos="robot.p",
-        label_heading="robot.theta",
+        label_pos="p",
+        label_heading="theta",
         parent=None,
         context=None,
     ):

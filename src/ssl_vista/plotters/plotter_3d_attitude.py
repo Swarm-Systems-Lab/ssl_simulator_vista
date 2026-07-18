@@ -20,7 +20,7 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         *,
         parent=None,
         context=None,
-        label_rot="robot.R",
+        label_rot="R",
         camera=None,
         tails=True,
         tail_max_len=None,

@@ -53,19 +53,17 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         *,
         parent=None,
         context=None,
-        sim_data_labels=None,
         grid=None,
         camera=None,
         robot=None,
         graphics=None,
-        label_pos="robot.p",
+        label_pos="p",
         label_orientation=None,
     ):
         super().__init__(parent=parent, context=context)
 
         self.dimension = dimension
         self._robot_objs = []
-        self.sim_data_labels = sim_data_labels or {"positions": "robot.p", "rotations": "robot.R"}
 
         # - Config namespaces (each accepts a model, a dict, or None)
         self.grid_config = GridConfig.build(grid)

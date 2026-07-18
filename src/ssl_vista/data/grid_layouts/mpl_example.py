@@ -29,7 +29,7 @@ class PlotterMplExample(BaseMplPlotter):
         ax.grid(True)
 
         ax.set_xlim(sim_data["time"].min(), sim_data["time"].max())
-        ax.set_ylim(sim_data["robot.theta"].min(), sim_data["robot.theta"].max())
+        ax.set_ylim(sim_data["theta"].min(), sim_data["theta"].max())
 
         self.artists["lines"] = []
         for i in range(self.n_robots):
@@ -39,7 +39,7 @@ class PlotterMplExample(BaseMplPlotter):
     def update_artists(self, sim_data, idx):
         """Wrapper called by FuncAnimation or manual update"""
         time = sim_data["time"]
-        data_theta = sim_data["robot.theta"]
+        data_theta = sim_data["theta"]
 
         for i, line in enumerate(self.artists["lines"]):
             line.set_data(time[: idx + 1], data_theta[: idx + 1, i])
