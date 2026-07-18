@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from ssl_simulator.visualization import set_paper_parameters
 
 from ssl_vista import BaseMplPlotter
+from ssl_vista.mpl import set_paper_parameters
 
 set_paper_parameters(fontsize=24)
 
