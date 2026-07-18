@@ -63,7 +63,7 @@ def _build_main_window(auto_play: bool, **kwargs: Any) -> MainWindow:
     handled by the caller (:func:`run_app`).
     """
     # GridSpec path: convert the spec to a grid, then fall through to the
-    # pre-built-grid path — avoids duplicating the sim_data/sim_settings pops.
+    # pre-built-grid path - avoids duplicating the sim_data/sim_settings pops.
     if "grid_spec" in kwargs:
         from ssl_vista.ui.grid import load_grid_from_spec  # local import to avoid cycles
 
@@ -94,7 +94,7 @@ def run_app(**kwargs: Any) -> None:  # type: ignore[misc]
 
     This function supports three mutually exclusive call signatures:
 
-    **File-based path** (original behaviour — fully preserved)::
+    **File-based path** (original behaviour - fully preserved)::
 
         run_app(layout="path/to/layout.json", data_path="path/to/run.csv")
 

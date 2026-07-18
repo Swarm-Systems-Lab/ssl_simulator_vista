@@ -17,6 +17,11 @@ What to check:
 
 The app sets `QT_QPA_PLATFORM=xcb` for Linux compatibility in `MainWindow`.
 
+Note that this is set **at import time**, so it overrides any value you export in the shell. Running
+the Qt app fully headless (`QT_QPA_PLATFORM=offscreen`) therefore does not work without patching
+that line. To exercise scene-object logic without a display, drive the PyVista objects directly
+against an off-screen `pv.Plotter(off_screen=True)` instead of launching the app.
+
 ## `FileNotFoundError` for layout or sample
 
 If `--layout` or `--data-path` fails:
@@ -56,7 +61,9 @@ Symptoms:
 
 Cause:
 
-- Plotters validate required keys and array dimensions (for example `robot.p`, `robot.theta`, `robot.R`).
+- Plotters validate required keys and array dimensions (for example `p`, `theta`, `R`). Lookup is by
+  **exact key**, and `ssl_simulator` logs flat names - a run logging `p` will not match a plotter
+  configured for `robot.p`.
 
 Fix:
 
@@ -65,6 +72,26 @@ Fix:
 3. Match plotter labels in layout `args` to available data keys.
 
 See [Data schema](data-schema.md).
+
+## `ModuleNotFoundError` importing `ssl_vista.mpl`
+
+Symptoms:
+
+- `ssl_vista.mpl requires Matplotlib and SciPy. Install the optional extra: pip install ssl_vista[mpl]`
+
+Cause:
+
+- Matplotlib and SciPy are **optional**. 2-D plotting is expected to move to a GPU-backed stack, so
+  Matplotlib is deliberately not a hard dependency.
+
+Fix:
+
+```bash
+pip install "ssl_vista[mpl]"   # or: uv add "ssl_vista[mpl]"
+```
+
+Matplotlib-based plotters under `plotters/` are skipped silently when the extra is absent, so a
+layout that uses one will report the plotter type as unknown rather than an import error.
 
 ## Custom Matplotlib plotter fails to load
 

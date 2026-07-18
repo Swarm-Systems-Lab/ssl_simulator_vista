@@ -3,6 +3,10 @@
 `ssl_vista` receives simulation data by calling `ssl_simulator.load_sim(csv_path)`.
 The returned `sim_data` dictionary must contain keys and array shapes expected by each active plotter.
 
+Lookup is by **exact key**. `ssl_simulator` logs **flat** component names (`p`, `theta`, `R`) with no
+`robot.`/`ctrl.` prefix, and the plotter defaults below match that. Any label can be overridden per
+plotter in the layout's `args`.
+
 ## Common key
 
 - `time`: array with time values of shape `(T,)`
@@ -13,47 +17,60 @@ The returned `sim_data` dictionary must contain keys and array shapes expected b
 
 Default labels:
 
-- position key: `robot.p`
-- heading key: `robot.theta`
+- position key (`label_pos`): `p`
+- heading key (`label_heading`): `theta`
 
 Expected shapes:
 
-- `robot.p`: `(T, N, 2)`
-- `robot.theta`: `(T, N)`
+- `p`: `(T, N, 2)`
+- `theta`: `(T, N)`
 
 Notes:
 
-- Heading key can be `None` only if configured that way in plotter args.
 - Position must always exist.
+- The heading is only required for *directional* robot types (e.g. `unicycle`). Symmetric types
+  such as `single_integrator` are drawn from position alone and ignore it.
 
 ## `Plotter3DCanvas`
 
 Default labels:
 
-- position key: `robot.p`
-- rotation key: `robot.R`
+- position key (`label_pos`): `p`
+- rotation key (`label_rot`): `R`
 
 Expected shapes:
 
-- `robot.p`: `(T, N, 3)`
-- `robot.R`: `(T, N, 3, 3)`
+- `p`: `(T, N, 3)`
+- `R`: `(T, N, 3, 3)`
 
 Notes:
 
-- Rotation key can be `None` only if configured that way in args.
 - Position must always exist.
+- As in 2D, the rotation is only required for directional robot types.
 
 ## `Plotter3DAttitude`
 
 Default label:
 
-- rotation key: `robot.R`
+- rotation key (`label_rot`): `R`
 
 Expected shape:
 
-- `robot.R`: `(T, N, 3, 3)`
+- `R`: `(T, N, 3, 3)`
 
 This plotter rotates a local axis triad for the selected robot index.
+
+## Overriding the labels
+
+If your run logs different names, point the plotter at them in the layout `args`:
+
+```json
+{
+  "type": "Plotter3DCanvas",
+  "position": [0, 0],
+  "args": {"label_pos": "p_est", "label_rot": "R_body"}
+}
+```
 
 ## Examples
 
@@ -75,5 +92,6 @@ If you see shape/key errors:
 
 1. Verify the chosen layout plotter types.
 2. Check plotter label overrides in layout `args`.
-3. Validate arrays emitted by `ssl_simulator.load_sim`.
+3. Validate arrays emitted by `ssl_simulator.load_sim` - print `list(sim_data)` to see the exact
+   keys your run produced.
 4. Compare against bundled sample files and this page.

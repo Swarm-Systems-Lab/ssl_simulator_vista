@@ -2264,15 +2264,15 @@ wheels = [
 
 [[package]]
 name = "ssl-simulator"
-version = "0.4.5"
+version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/7d/7d88b513924284b999fdc06bac7ce18d26500e991f9c40e62e6f2584e498/ssl_simulator-0.4.5.tar.gz", hash = "sha256:4ec5b43eb5a2bdcc10ae16f03e725ba3fba7df65fa97312ee0dd45e253276052", size = 67770, upload-time = "2026-07-16T11:31:10.061Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/90/4daa5caecedadcacc4dbb748f7d20a12095f09c345e52274b7ac7ed83ef9/ssl_simulator-1.0.0.tar.gz", hash = "sha256:6585825f65e649d4fb1a33abdd39a348ecd67cf74cf8ea03c07c17ffac125135", size = 48886, upload-time = "2026-07-18T13:43:24.159Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3c/90/35c44c0feac15131e44031abaacce860a2cbb4cfdcde0478e5346a526ccf/ssl_simulator-0.4.5-py3-none-any.whl", hash = "sha256:9a7cae84087ba4e1c53b9d6c29c1787f906e705a9465dc59893b21878b7cc00e", size = 95505, upload-time = "2026-07-16T11:31:08.821Z" },
+    { url = "https://files.pythonhosted.org/packages/13/89/c348e67e5386c3babbb437e6dfff0812d4b9ee6bf06ff15e2c729e18de6b/ssl_simulator-1.0.0-py3-none-any.whl", hash = "sha256:c22ad97026d01158fc52ce856e14276e9c6af6b5594aef584816496f4fb65558", size = 65949, upload-time = "2026-07-18T13:43:23.135Z" },
 ]
 
 [[package]]
@@ -2378,7 +2378,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9.0" },
     { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.9.0" },
     { name = "scipy", marker = "extra == 'mpl'", specifier = ">=1.5" },
-    { name = "ssl-simulator", specifier = ">=0.1.1" },
+    { name = "ssl-simulator", specifier = ">=1.0.0" },
     { name = "tox", marker = "extra == 'dev'", specifier = ">=4.18" },
     { name = "tox-uv", marker = "extra == 'dev'", specifier = ">=1.9" },
     { name = "twine", marker = "extra == 'dev'", specifier = ">=5.1.1" },

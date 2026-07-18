@@ -90,7 +90,7 @@ These abstractions manage mesh + actor lifecycle and group hierarchical scene el
 ## Configuration
 
 Canvas-plotter configuration is grouped into typed pydantic models in
-`src/ssl_vista/plotters/pv_utils/configs.py` — `GridConfig`, `CameraConfig`,
+`src/ssl_vista/plotters/pv_utils/configs.py` - `GridConfig`, `CameraConfig`,
 `GraphicsConfig`, `RobotConfig`. A plotter accepts each as a `grid`/`camera`/`robot`/
 `graphics` namespace (a model or a plain dict, e.g. from a layout's `args`) and forwards
 it whole to its sub-component, so options never need re-declaring on parent classes.

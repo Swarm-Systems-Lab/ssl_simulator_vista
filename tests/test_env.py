@@ -29,7 +29,7 @@ REQUIRED_MODULES = BASIC_MODULES + GUI_MODULES
 
 # A Qt/OpenGL display is needed to actually *use* the GUI stack (importing the
 # bindings is fine, but loading an interactive backend is not). Treat the run as
-# headless when neither an X11 nor a Wayland display is advertised — this covers
+# headless when neither an X11 nor a Wayland display is advertised - this covers
 # local headless shells as well as CI, so it no longer keys off the CI env var.
 _HEADLESS = not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 _requires_display = pytest.mark.skipif(

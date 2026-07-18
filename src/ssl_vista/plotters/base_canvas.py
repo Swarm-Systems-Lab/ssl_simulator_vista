@@ -29,15 +29,15 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
     """
     Generalized PyVista canvas for spatial visualization.
 
-    Configuration is grouped into namespaces — ``grid`` (:class:`GridConfig`),
+    Configuration is grouped into namespaces - ``grid`` (:class:`GridConfig`),
     ``camera`` (:class:`CameraConfig`), ``robot`` (:class:`RobotConfig`) and
-    ``graphics`` (:class:`GraphicsConfig`) — each accepting a model or a plain dict
+    ``graphics`` (:class:`GraphicsConfig`) - each accepting a model or a plain dict
     (e.g. from a layout file's ``args``). Each namespace is forwarded whole to its
     sub-component, so options never need re-declaring on this class.
 
     The robot *type* dictates which simulation fields are required (see
     :meth:`RobotFactory.pose_fields`): every type needs positions, and directional
-    types additionally need an orientation — a planar ``heading`` in 2D or a rotation
+    types additionally need an orientation - a planar ``heading`` in 2D or a rotation
     matrix (``rotation``) in 3D. Symmetric types (e.g. ``single_integrator``) are drawn
     from position alone. This policy and the shared ``init_artists`` / ``update_artists``
     lifecycle live here; concrete subclasses only supply the small dimension-specific
@@ -78,7 +78,7 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         self.needs_orientation = self.orientation_field in self.required_fields
 
         # - Simulation data labels. A symmetric icon ignores orientation, so drop its
-        #   label entirely — a single-integrator run isn't forced to provide it.
+        #   label entirely - a single-integrator run isn't forced to provide it.
         self.label_pos = label_pos
         self.label_orientation = label_orientation if self.needs_orientation else None
 

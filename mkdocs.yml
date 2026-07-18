@@ -1,5 +1,5 @@
 site_name: ssl_vista
-site_description: "⚠️ Warning: Documentation is work in progress."
+site_description: "Qt-based visualization app for ssl_simulator logs."
 site_author: Jesus Bautista Villar
 copyright: Copyright &copy; 2024 Jesus Bautista Villar
 
@@ -69,6 +69,4 @@ nav:
   - Data schema: data-schema.md
   - Plotter development: plotter-development.md
   - API Reference: api.md
-  - Golden path: golden-path.md
-  - Contributing: contributing.md
   - Troubleshooting: troubleshooting.md

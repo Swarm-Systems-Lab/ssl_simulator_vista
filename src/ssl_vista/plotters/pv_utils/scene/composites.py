@@ -18,7 +18,7 @@ class Axes(SceneObjectGroup):
     thickness scales with the camera like the rest of the scene.
 
     With ``tails=True`` each axis also gets a world-frame trajectory (in the axis'
-    colour) tracing the path of its tip over time — fed via :meth:`set_tail_points`.
+    colour) tracing the path of its tip over time - fed via :meth:`set_tail_points`.
     """
 
     def __init__(
@@ -69,7 +69,7 @@ class Axes(SceneObjectGroup):
     def set_tail_points(self, R_history) -> None:
         """Update the axis tip tails from a rotation history ``(K, 3, 3)``.
 
-        Each axis tail traces its tip ``R(t) · (size · e_i)`` — a path on the sphere
+        Each axis tail traces its tip ``R(t) · (size · e_i)`` - a path on the sphere
         of radius ``size``. No-op when the axes were built without ``tails=True``.
         """
         if not self.tails:
@@ -201,7 +201,7 @@ class SphereGrid(SceneObjectGroup):
     """A functional spherical reference grid.
 
     A :class:`Sphere` backdrop plus X/Y/Z axis arrows centred at the origin and their
-    labels — the spherical analogue of the box ``CanvasGrid`` (e.g. for the 3D attitude
+    labels - the spherical analogue of the box ``CanvasGrid`` (e.g. for the 3D attitude
     plotter). Tick labels along the sphere are intentionally omitted for now.
     """
 

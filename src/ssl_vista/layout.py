@@ -2,8 +2,8 @@
 
 This module is the **single source of truth** for the on-disk layout format
 consumed by :func:`ssl_vista.load_grid_from_json`. It is deliberately free of Qt
-and PyVista imports so that *producers* — simulators writing artifacts, tests,
-tooling — can construct and validate layouts without a display or the rendering
+and PyVista imports so that *producers* - simulators writing artifacts, tests,
+tooling - can construct and validate layouts without a display or the rendering
 stack::
 
     from ssl_vista.layout import LayoutBuilder
@@ -17,7 +17,7 @@ stack::
     layout.write_json("layout.json")
 
 The validated model (:class:`GridLayoutConfig`) is exactly what the viewer parses
-at load time, so a layout that builds here is guaranteed schema-valid there —
+at load time, so a layout that builds here is guaranteed schema-valid there -
 there is no parallel schema to drift out of sync.
 """
 

@@ -1,7 +1,7 @@
 """Matplotlib visualization utilities (optional).
 
-Small, reusable Matplotlib helpers — publication styling, 2-D robot glyphs, vector/axis drawing,
-colormaps, and animation updaters — shared across the simulation ecosystem. They are pure
+Small, reusable Matplotlib helpers - publication styling, 2-D robot glyphs, vector/axis drawing,
+colormaps, and animation updaters - shared across the simulation ecosystem. They are pure
 Matplotlib (no Qt), so they import without a display.
 
 This is an **optional** feature: install the ``mpl`` extra (``pip install ssl_vista[mpl]``) to pull

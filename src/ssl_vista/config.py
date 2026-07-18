@@ -4,7 +4,7 @@
 class Config(dict):
     """A plain dict for global runtime flags.
 
-    Graphics/style defaults now live in typed models — see
+    Graphics/style defaults now live in typed models - see
     :mod:`ssl_vista.plotters.pv_utils.configs` (``GraphicsConfig``, ``GridConfig``, ...).
     """
 

@@ -231,7 +231,7 @@ def load_grid_from_json(file_path: str | Path, parent=None) -> SimulationGrid:
 def load_grid_from_spec(spec: GridSpec, parent: object = None) -> SimulationGrid:
     """Build a :class:`SimulationGrid` from a programmatic :class:`~ssl_vista.types.GridSpec`.
 
-    This is the programmatic counterpart to :func:`load_grid_from_json` — it
+    This is the programmatic counterpart to :func:`load_grid_from_json` - it
     accepts a :class:`~ssl_vista.types.GridSpec` Python object rather than a
     JSON file path, so no filesystem access is required.
 

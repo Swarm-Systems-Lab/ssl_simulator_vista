@@ -27,12 +27,12 @@ They are validated against strict Pydantic models before any Qt widgets or plott
 Canvas-plotter options are grouped into typed **namespaces**, each forwarded whole to its
 sub-component (so any option a sub-component supports is reachable from a layout):
 
-- `grid` — grid range/ticks and label style (`range`, `ticks`, `font_size`, `xtitle`,
+- `grid` - grid range/ticks and label style (`range`, `ticks`, `font_size`, `xtitle`,
   `ytitle`, `ztitle`, `bold`, `color`, `grid`, `minor_ticks`).
-- `camera` — `background`, `position`, `parallel`, `lights` (`"three"|"2d"`), `azimuth`.
+- `camera` - `background`, `position`, `parallel`, `lights` (`"three"|"2d"`), `azimuth`.
   Unset fields resolve to per-dimension defaults.
-- `robot` — `type`, `color`, `size`, `tail`, `axes`.
-- `graphics` — default line sizes (`axes_line_width`, `trajectory_size`, ...).
+- `robot` - `type`, `color`, `size`, `tail`, `axes`.
+- `graphics` - default line sizes (`axes_line_width`, `trajectory_size`, ...).
 
 Each namespace is validated (`extra="forbid"`), so a typo like `{"grid": {"fnt_size": 12}}`
 raises instead of being silently ignored. The flat `robot_*` args

@@ -10,12 +10,21 @@ It combines PyVista plotters (2D/3D robot views) and optional Matplotlib plotter
 - Builds the UI from a JSON grid layout (`data/grid_layouts/*.json`)
 - Supports built-in plotters and file-based custom Matplotlib plotters
 
+## Install
+
+```bash
+pip install ssl_vista
+```
+
+Optional extras: `mpl` (Matplotlib plotters and the `ssl_vista.mpl` helpers - Matplotlib and SciPy
+are **not** hard dependencies), `video` (movie export).
+
 ## Quick start
 
 ```bash
 # Clone and enter the repository
 git clone https://github.com/Swarm-Systems-Lab/ssl_simulator_vista
-cd ssl_vista
+cd ssl_simulator_vista
 
 # Setup development environment
 just setup

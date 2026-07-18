@@ -4,11 +4,11 @@ This guide explains how to add custom plotters to `ssl_vista`.
 
 ## The authoring contract (all backends)
 
-Every plotter — PyVista, Matplotlib, and any future backend (e.g. pyqtgraph) — is
+Every plotter - PyVista, Matplotlib, and any future backend (e.g. pyqtgraph) - is
 authored by implementing the **same two extension points**:
 
-- `init_artists(self, sim_data, sim_settings)` — create the scene's artists from data.
-- `update_artists(self, sim_data, idx)` — update them for frame `idx`.
+- `init_artists(self, sim_data, sim_settings)` - create the scene's artists from data.
+- `update_artists(self, sim_data, idx)` - update them for frame `idx`.
 
 The framework lifecycle methods that the grid driver actually calls
 (`setup_scene`, `reset_scene`, `update_all_scene_objects`) are provided by the backend
@@ -54,7 +54,7 @@ The layout entry points to a module file and class:
 ## Scene objects and poses (PyVista)
 
 A **scene object** wraps a PyVista mesh and its VTK actor. Rigid objects carry a
-**pose** applied through `actor.user_matrix` — a 4×4 transform evaluated on the GPU —
+**pose** applied through `actor.user_matrix` - a 4×4 transform evaluated on the GPU -
 so moving a robot each frame is a matrix assignment, not a NumPy recompute of the mesh
 points. Objects whose geometry genuinely changes each frame (trajectories, glyph
 fields) update their points explicitly.

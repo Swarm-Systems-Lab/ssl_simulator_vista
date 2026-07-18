@@ -316,7 +316,7 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
     def collect_scene_objects(self, verbose: bool = False) -> dict:
         """Return a structured snapshot of this plotter's matplotlib artists.
 
-        Pure data — no logging side effects.
+        Pure data - no logging side effects.
         """
         line_configs = {
             name: {"axis": cfg["axis"], "var": cfg["var"], "shape": cfg["shape"]}

@@ -31,7 +31,7 @@ from .base import Drawable, SceneObject
 class Label(Drawable):
     """Billboard text anchored at fixed 3D points (via ``add_point_labels``).
 
-    Screen-facing text that stays legible from any camera angle — used for static
+    Screen-facing text that stays legible from any camera angle - used for static
     annotations such as axis labels. Not affected by ``set_pose``.
     """
 

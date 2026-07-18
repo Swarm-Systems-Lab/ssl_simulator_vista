@@ -211,7 +211,7 @@ class _BaseVisualPlotter(_BasePlotter):
     def collect_scene_objects(self, verbose: bool = False) -> dict:
         """Return a structured snapshot of this plotter's scene objects.
 
-        Pure data — no logging side effects. The caller decides whether and
+        Pure data - no logging side effects. The caller decides whether and
         how to log it.
         """
         objects = {}

@@ -285,14 +285,14 @@ class MainWindow(QMainWindow):
             _logger.error("Data load failed: %s", exc)
 
             # Re-initialise plotters with the previous data so they are in a
-            # consistent state — reset_scenes may have partially run before
+            # consistent state - reset_scenes may have partially run before
             # failing, leaving some plotters cleared but not re-initialised.
             if prev_data is not None:
                 try:
                     self.grid.reset_scenes(prev_data, prev_settings or {})
                     self.reset_simulation()
                 except Exception:
-                    # Rollback also failed — clear data so replay can't crash.
+                    # Rollback also failed - clear data so replay can't crash.
                     self.sim_data = None
                     self.sim_settings = None
                     self.sim_time = None
