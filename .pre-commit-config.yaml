@@ -15,3 +15,12 @@ repos:
       - id: check-yaml
         args: [--unsafe]
       - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: no-local-uv-sources
+        name: no local uv path sources (pyproject.toml / uv.lock)
+        entry: python3 scripts/check_no_local_sources.py
+        language: pygrep
+        files: '^(pyproject\.toml|uv\.lock)$'
+        entry: '(?:^\s*path\s*=\s*"|source\s*=\s*\{\s*(?:editable|directory|path)\s*=\s*"(?!\."))'

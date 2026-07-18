@@ -27,12 +27,18 @@ from typing import Union
 
 import numpy as np
 import pyvista as pv
+from ssl_simulator.math import make_pose
 
 pv.global_theme.allow_empty_mesh = True
 
 
 def pose_matrix(position=None, R=None, heading=None) -> np.ndarray:
     """Build a 4x4 homogeneous pose from any of position / rotation / heading.
+
+    The matrix itself is assembled by :func:`ssl_simulator.math.make_pose`, so the pose convention
+    (local -> world, translation in column 3) has a single definition shared with the simulator
+    rather than being restated here. What stays local are the *viewer* conveniences: a planar
+    ``heading`` and 2-D positions, which the 3-D simulator side has no reason to carry.
 
     Parameters
     ----------
@@ -43,18 +49,17 @@ def pose_matrix(position=None, R=None, heading=None) -> np.ndarray:
     heading : float, optional
         Planar heading angle (radians) about +Z. Convenience for 2D objects.
     """
-    M = np.eye(4)
     if heading is not None:
         c, s = np.cos(heading), np.sin(heading)
         R = np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
-    if R is not None:
-        M[:3, :3] = np.asarray(R, dtype=float)
+    rotation = np.eye(3) if R is None else np.asarray(R, dtype=float)
+
+    translation = np.zeros(3)
     if position is not None:
         p = np.asarray(position, dtype=float).reshape(-1)
-        if p.size == 2:
-            p = np.array([p[0], p[1], 0.0])
-        M[:3, 3] = p[:3]
-    return M
+        translation = np.array([p[0], p[1], 0.0]) if p.size == 2 else p[:3]
+
+    return make_pose(rotation, translation)
 
 
 class Drawable:

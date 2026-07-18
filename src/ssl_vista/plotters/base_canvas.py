@@ -85,6 +85,14 @@ class BaseCanvasPlotter(_BaseVisualPlotter):
         # - Canvas grid (whole grid namespace forwarded)
         self.canvas_grid = CanvasGrid(self.pvqt, dimension=dimension, config=self.grid_config)
 
+    @property
+    def reads(self) -> tuple[str, ...]:
+        """Positions, plus the orientation when this robot type is directional."""
+        names = [self.label_pos]
+        if self.label_orientation is not None:
+            names.append(self.label_orientation)
+        return tuple(names)
+
     # ---------------------------------------------------------------
     # SUBCLASS HOOKS (dimension-specific bits)
     # ---------------------------------------------------------------

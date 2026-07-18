@@ -118,6 +118,12 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
     # ---------------------------------------------------------------
     # API METHODS
     # ---------------------------------------------------------------
+    @property
+    def reads(self) -> tuple[str, ...]:
+        """Derived from the registered lines - `register_lines` already names each component."""
+        seen = {cfg["var"] for cfg in self.line_configs.values()}
+        return tuple(sorted(seen))
+
     def register_lines(self, axis, var, name=None, shape=None, units="", extract=None, **kw_style):
         """
         Register a group of lines to be plotted and updated.

@@ -122,8 +122,37 @@ class SimulationGrid(QWidget):
             if plotter is not None:
                 plotter.setup_scene()
 
+    def missing_components(self, sim_data) -> dict[str, list[str]]:
+        """Components each plotter declares via ``reads`` but the source cannot provide.
+
+        Checking up front turns a mid-animation ``KeyError`` into one clear message naming the
+        layout position, the plotter and the absent components.
+        """
+        report: dict[str, list[str]] = {}
+        rows, cols = self._plotter_array.shape
+        for r in range(rows):
+            for c in range(cols):
+                plotter = self._plotter_array[r, c]
+                if plotter is None:
+                    continue
+                missing = plotter.missing_components(sim_data)
+                if missing:
+                    report[f"({r},{c}) {type(plotter).__name__}"] = missing
+        return report
+
+    def check_source(self, sim_data) -> None:
+        """Raise if any plotter needs a component the source does not have."""
+        report = self.missing_components(sim_data)
+        if report:
+            available = sorted(getattr(sim_data, "components", None) or set(sim_data))
+            detail = "; ".join(f"{who} needs {what}" for who, what in report.items())
+            raise KeyError(
+                f"layout cannot be rendered from this data: {detail}. Available: {available}"
+            )
+
     def reset_scenes(self, sim_data, sim_settings):
         """Reset all subplots and emit a single structured log record."""
+        self.check_source(sim_data)
         for plotter in self._plotter_array.flatten():
             if plotter is not None:
                 plotter.reset_scene(sim_data, sim_settings)

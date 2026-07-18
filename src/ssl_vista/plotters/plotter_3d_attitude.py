@@ -73,6 +73,11 @@ class Plotter3DAttitude(_BaseVisualPlotter):
         # - Connect to context signals
         self.context.robot_focus_changed.connect(self._rotate_axes)
 
+    @property
+    def reads(self) -> tuple[str, ...]:
+        """Only the rotation matrix; this plotter draws one robot's attitude."""
+        return (self.label_rot,)
+
     # ------------------------------------------------------------------
     # SCENE SETUP
     # ------------------------------------------------------------------

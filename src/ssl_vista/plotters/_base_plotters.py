@@ -36,6 +36,27 @@ class _BasePlotter:
         return self.widget
 
     # ---------------------------------------------------------------
+    # DATA CONTRACT
+    # ---------------------------------------------------------------
+    @property
+    def reads(self) -> tuple[str, ...]:
+        """Component names this plotter needs from the data source.
+
+        The analogue of ``ssl_simulator.System.reads``: declaring the dependency lets a layout be
+        checked against a source *before* rendering, instead of failing with a ``KeyError`` partway
+        through an animation. It is a property rather than a class attribute because most plotters
+        resolve their component names at construction (configurable labels, registered lines).
+
+        Return ``()`` to opt out of checking.
+        """
+        return ()
+
+    def missing_components(self, source) -> list[str]:
+        """Which of :attr:`reads` the given source cannot provide."""
+        available = getattr(source, "components", None) or set(source)
+        return [name for name in self.reads if name not in available]
+
+    # ---------------------------------------------------------------
     # AUTHORING CONTRACT (implemented by every plotter, any backend)
     # ---------------------------------------------------------------
     # Leaf plotters implement `init_artists` / `update_artists`; the framework
