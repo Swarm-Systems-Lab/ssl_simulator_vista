@@ -1,3 +1,16 @@
+"""Axis **scales** and tick **formats** - two different things, kept apart.
+
+**Scale** is the axis *transform*: how data coordinates map to display coordinates. It changes the
+geometry of the axis and therefore which limits are legal - a ``log`` axis cannot show values
+``<= 0``. These are matplotlib's own (``linear``, ``log``, ``symlog``, ``asinh``, ``logit``, ...).
+
+**Format** is the *labelling*: where ticks are placed (Locator) and what text they carry
+(Formatter). It moves no data and leaves the transform alone.
+
+They are separate config keys (``yscale`` vs ``yformat``) precisely so they compose: a log axis with
+percentage labels, or radian ticks on a symlog axis, are both expressible.
+"""
+
 import logging
 
 import numpy as np
@@ -5,12 +18,21 @@ from matplotlib.ticker import FuncFormatter, MultipleLocator
 
 _logger = logging.getLogger(__name__)
 
-# ---------- custom scale handlers ----------
+__all__ = ["apply_format", "apply_scale", "available_formats", "available_scales"]
 
 
-def _apply_radian_scale(ax, axis: str) -> None:
-    """Format ticks as multiples of π. axis is 'x' or 'y'."""
-    target = ax.xaxis if axis == "x" else ax.yaxis
+def _axis_of(ax, axis: str):
+    if axis not in ("x", "y"):
+        raise ValueError(f"axis must be 'x' or 'y', got {axis!r}.")
+    return ax.xaxis if axis == "x" else ax.yaxis
+
+
+# ---------- tick format handlers (labelling only; the transform is untouched) ----------
+
+
+def _format_radians(ax, axis: str) -> None:
+    """Place ticks every π/2 and label them as multiples of π."""
+    target = _axis_of(ax, axis)
 
     def _fmt(val, _pos):
         if val == 0:
@@ -38,27 +60,66 @@ def _apply_radian_scale(ax, axis: str) -> None:
     target.set_major_formatter(FuncFormatter(_fmt))
 
 
-def _apply_degree_scale(ax, axis: str) -> None:
-    """Format ticks as degree values (assumes data is in radians)."""
-    target = ax.xaxis if axis == "x" else ax.yaxis
-    target.set_major_formatter(FuncFormatter(lambda v, _p: f"{np.degrees(v):.0f}°"))
+def _format_degrees(ax, axis: str) -> None:
+    """Label ticks in degrees (the underlying data stays in radians)."""
+    _axis_of(ax, axis).set_major_formatter(FuncFormatter(lambda v, _p: f"{np.degrees(v):.0f}°"))
 
 
-# ---------- scale registry and dispatcher ----------
+def _format_percent(ax, axis: str) -> None:
+    """Label a 0-1 fraction as a percentage."""
+    _axis_of(ax, axis).set_major_formatter(FuncFormatter(lambda v, _p: f"{100 * v:.0f}%"))
 
 
-# Registry: name -> handler.
-_CUSTOM_SCALES = {
-    "radians": _apply_radian_scale,
-    "degrees": _apply_degree_scale,
+# ---------- registries and dispatchers ----------
+
+
+_FORMATS = {
+    "radians": _format_radians,
+    "degrees": _format_degrees,
+    "percent": _format_percent,
 }
 
 
+def available_scales() -> list[str]:
+    """Matplotlib's axis transforms (the valid ``xscale``/``yscale`` values)."""
+    import matplotlib.scale
+
+    return sorted(matplotlib.scale.get_scale_names())
+
+
+def available_formats() -> list[str]:
+    """The tick-format presets (the valid ``xformat``/``yformat`` values)."""
+    return sorted(_FORMATS)
+
+
 def apply_scale(ax, axis: str, scale: str) -> None:
-    """Apply a scale to ax's x or y axis. Dispatches custom scales by name."""
-    if scale in _CUSTOM_SCALES:
-        _CUSTOM_SCALES[scale](ax, axis)
-    else:
-        # Defer to matplotlib's built-in scales
-        setter = ax.set_xscale if axis == "x" else ax.set_yscale
-        setter(scale)
+    """Set the axis **transform** on ``ax``'s x or y axis.
+
+    Raises on an unknown name, listing the valid ones - matplotlib alone would fail deeper down
+    with no reference to which axis was misconfigured. Tick formats belong to :func:`apply_format`.
+    """
+    _axis_of(ax, axis)  # validates `axis`
+
+    valid = available_scales()
+    if scale not in valid:
+        hint = ""
+        if scale in _FORMATS:
+            hint = f" - '{scale}' is a tick format, use '{axis}format' instead of '{axis}scale'"
+        raise ValueError(f"unknown scale {scale!r}; expected one of {', '.join(valid)}{hint}.")
+
+    setter = ax.set_xscale if axis == "x" else ax.set_yscale
+    setter(scale)
+
+
+def apply_format(ax, axis: str, fmt: str) -> None:
+    """Apply a tick **format** preset to ``ax``'s x or y axis (labels/locators only)."""
+    _axis_of(ax, axis)  # validates `axis`
+
+    if fmt not in _FORMATS:
+        hint = ""
+        if fmt in available_scales():
+            hint = f" - '{fmt}' is an axis scale, use '{axis}scale' instead of '{axis}format'"
+        raise ValueError(
+            f"unknown tick format {fmt!r}; expected one of {', '.join(available_formats())}{hint}."
+        )
+    _FORMATS[fmt](ax, axis)
