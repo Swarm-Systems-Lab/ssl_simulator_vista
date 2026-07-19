@@ -67,6 +67,15 @@ class _BasePlotter:
         """Create the scene's artists from data. Implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement init_artists()")
 
+    def refresh_data(self, sim_data, sim_settings):
+        """The data source grew (live stream): refresh anything derived from the full run.
+
+        Called by the grid between ``reset_scene`` (new run) and per-frame ``update_artists``
+        whenever a live source reports new frames. Plotters whose ``update_artists`` only index
+        ``sim_data[...][idx]`` need nothing here (arrays growing at the end is transparent);
+        override to refit axis limits or rebuild caches computed over the whole run.
+        """
+
     def update_artists(self, sim_data, idx):
         """Update the scene's artists for frame ``idx``. Implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement update_artists()")

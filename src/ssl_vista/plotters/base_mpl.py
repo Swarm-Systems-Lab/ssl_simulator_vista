@@ -154,11 +154,12 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
     # ---------------------------------------------------------------
     # HELPER METHODS
     # ---------------------------------------------------------------
-    def _init_lines_from_config(self, sim_data):
-        """Initialize all registered lines and set axis labels/limits.
+    def _fit_line_limits(self, sim_data):
+        """(Re)fit x/y limits of every axis that carries registered lines.
 
-        When multiple line groups share an axis, y-limits accumulate so every
-        line stays in view. x-limits use the time vector and are uniform.
+        When multiple line groups share an axis, y-limits accumulate so every line stays in
+        view. x-limits use the time vector and are uniform. Factored out of the init path so a
+        **live source** can call it again as data grows (see :meth:`refresh_data`).
         """
         time = sim_data["time"]
         t_min, t_max = float(time.min()), float(time.max())
@@ -173,8 +174,6 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
             data = sim_data[cfg["var"]]
             if cfg["extract"]:
                 data = cfg["extract"](data)
-            if cfg["shape"] is None:
-                cfg["shape"] = data.shape[1] if len(data.shape) > 1 else 1
 
             is_log = ax.get_yscale() == "log"
             if is_log:  # ignore non-positive samples; they cannot be shown on a log axis
@@ -187,25 +186,10 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
             if cfg["axis"] not in seen_axes:
                 ax.set_xlim(t_min, t_max)
                 y_lo, y_hi = _expand_limits(None, d_min, d_max, log=is_log)
-                ax.set_xlabel(r"$t$ [T]")
-                ax.set_ylabel(f"{cfg['var']} [{cfg['units']}]")
                 seen_axes.add(cfg["axis"])
             else:
                 y_lo, y_hi = _expand_limits(ax.get_ylim(), d_min, d_max, log=is_log)
-                # Append to ylabel so multi-variable axes are self-documenting
-                existing_label = ax.get_ylabel()
-                new_label = f"{cfg['var']} [{cfg['units']}]"
-                if new_label not in existing_label:
-                    ax.set_ylabel(f"{existing_label}, {new_label}")
-
             ax.set_ylim(y_lo, y_hi)
-
-            self.artists[name] = []
-            for i in range(cfg["shape"]):
-                style = {k: v[i] if isinstance(v, list) else v for k, v in cfg["style"].items()}
-                (line,) = ax.plot([], [], **style)
-                self.artists[name].append(line)
-            ax.legend()
 
             _logger.debug_verbose(
                 "axis limits configured",
@@ -217,6 +201,43 @@ class BaseMplPlotter(ProtectedAttrsMixin, _BasePlotter):
                     "data_range": [d_min, d_max],
                 },
             )
+
+    def refresh_data(self, sim_data, sim_settings):
+        """Live source grew: refit axis limits. Line artists follow per-frame in _update_lines."""
+        if self.line_configs and self.axes:
+            self._fit_line_limits(sim_data)
+
+    def _init_lines_from_config(self, sim_data):
+        """Initialize all registered lines, set axis labels, and fit limits."""
+        seen_axes: set[str] = set()
+
+        for name, cfg in self.line_configs.items():
+            ax = self.axes[cfg["axis"]]
+            data = sim_data[cfg["var"]]
+            if cfg["extract"]:
+                data = cfg["extract"](data)
+            if cfg["shape"] is None:
+                cfg["shape"] = data.shape[1] if len(data.shape) > 1 else 1
+
+            if cfg["axis"] not in seen_axes:
+                ax.set_xlabel(r"$t$ [T]")
+                ax.set_ylabel(f"{cfg['var']} [{cfg['units']}]")
+                seen_axes.add(cfg["axis"])
+            else:
+                # Append to ylabel so multi-variable axes are self-documenting
+                existing_label = ax.get_ylabel()
+                new_label = f"{cfg['var']} [{cfg['units']}]"
+                if new_label not in existing_label:
+                    ax.set_ylabel(f"{existing_label}, {new_label}")
+
+            self.artists[name] = []
+            for i in range(cfg["shape"]):
+                style = {k: v[i] if isinstance(v, list) else v for k, v in cfg["style"].items()}
+                (line,) = ax.plot([], [], **style)
+                self.artists[name].append(line)
+            ax.legend()
+
+        self._fit_line_limits(sim_data)
 
     def _update_lines(self, sim_data, idx):
         """

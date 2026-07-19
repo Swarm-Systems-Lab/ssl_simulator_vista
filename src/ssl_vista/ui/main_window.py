@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
-from ssl_simulator.utils.processing import load_sim  # type: ignore[import-untyped]
+
+from ssl_vista.backend import Session
+from ssl_vista.sources import DataSource, LoggedSource
 
 from .export import ExportManager
 from .grid import SimulationGrid, load_grid_from_json
@@ -89,12 +91,20 @@ class MainWindow(QMainWindow):
         self.playing = False
         self.updated = False
         self.sim_file_path = None
+        self.source: DataSource | None = None
         self.sim_time = None
         self.sim_data = None
         self.sim_settings = None
         self.current_time_index = 0
 
         # --- Timers ---
+        # The Qt-free backend: source binding + cursor state machine + commander handle.
+        # This window is one frontend over it; the QTimer below just drives session.poll().
+        self.session = Session()
+        self.live_timer = QTimer(self)
+        self.live_timer.setInterval(100)  # ms
+        self.live_timer.timeout.connect(self._on_live_tick)
+
         # Key press delay timer
         self.key_press_timer = QTimer(self)
         self.key_press_timer.setSingleShot(True)
@@ -121,6 +131,9 @@ class MainWindow(QMainWindow):
                 self.load_grid_layout(layout)
             if data_path is not None:
                 self.load_data(data_path)
+            elif sim_data is not None:
+                # File layout + programmatic source: how a live stream meets a saved layout.
+                self._load_sim_direct(sim_data, sim_settings if sim_settings is not None else {})
 
     def handle_key_press(self, event):
         """Handle key press events."""
@@ -163,6 +176,7 @@ class MainWindow(QMainWindow):
         return self.time_slider.maximum() - self.time_slider.minimum()
 
     def slider_pressed(self):
+        self.session.detach()  # user is scrubbing history; stop chasing the head
         self.stop_simulation()
 
     # ----------------------------------------------------------------------
@@ -223,19 +237,72 @@ class MainWindow(QMainWindow):
             Simulation variable arrays keyed by field name.
             Must contain a ``"time"`` key with a sequence of timestamps.
         sim_settings:
-            Scalar simulation parameters (``dt``, ``n_robots``, etc.).
+            Scalar simulation parameters (``dt``, ``n_robots``, etc.). Ignored when ``sim_data``
+            is already a :class:`~ssl_vista.sources.DataSource`, which carries its own.
         """
         if self.grid is None:
             return
-        self.sim_data = sim_data
-        self.sim_settings = sim_settings
-        self.sim_time = self.sim_data["time"]
-        self.time_slider.setRange(0, len(self.sim_time) - 1)
+        self._set_source(
+            sim_data if isinstance(sim_data, DataSource) else LoggedSource(sim_data, sim_settings)
+        )
+        if self.source.is_live:
+            self._start_live_view()
+            return
+        self.time_slider.setRange(0, max(self.source.n_frames - 1, 0))
         self.time_slider.blockSignals(False)
         self.grid.reset_scenes(self.sim_data, self.sim_settings)
         self.reset_simulation()
         if self.auto_play:
             self.play_simulation()
+
+    def _set_source(self, source: DataSource) -> None:
+        """Point the window at a data source.
+
+        ``sim_data``/``sim_settings``/``sim_time`` remain for anything reading them directly - a
+        :class:`DataSource` *is* a mapping of component arrays, so they stay valid views of it.
+        Everything new should go through ``self.source`` instead, which is what makes a live
+        telemetry/SITL feed a drop-in replacement for a replayed log.
+        """
+        self.live_timer.stop()  # a previous live view, if any, ends with its source
+        self.session.set_source(source)
+        self.source = source
+        self.sim_data = source
+        self.sim_settings = source.settings
+        self.sim_time = source.get("time")
+
+    # ---------------------------------------------------------------
+    # LIVE SOURCES (streams: a running sim, telemetry, SITL)
+    # ---------------------------------------------------------------
+    def _start_live_view(self) -> None:
+        """Follow a live source: scenes initialize on the first frame, then track the head."""
+        self.time_slider.blockSignals(False)
+        self.live_timer.start()
+
+    def _on_live_tick(self) -> None:
+        """Apply one Session poll to the widgets; the decision logic lives in the backend."""
+        source = self.source
+        if source is None or not self.session.is_live or self.grid is None:
+            self.live_timer.stop()
+            return
+        update = self.session.poll()
+        if update is None:
+            return
+        self.sim_time = source["time"]  # keep len(sim_time) honest for update_simulation
+
+        if update.scene_init:
+            self.grid.reset_scenes(source, source.settings)  # deferred initial build
+        else:
+            self.grid.refresh_scenes(source, source.settings)  # run-derived state
+
+        self.time_slider.blockSignals(True)
+        self.time_slider.setRange(0, update.n_frames - 1)
+        if update.render_index is not None:
+            self.time_slider.setValue(update.render_index)
+            self.current_time_index = update.render_index
+            self.time_label.setText(f"Time: {update.time:.2f} ")
+            self.grid.update_scenes(source, update.render_index)
+            self.export_manager.capture_frame()
+        self.time_slider.blockSignals(False)
 
     # ---------------------------------------------------------------
     # FILE LOADING METHODS
@@ -267,9 +334,8 @@ class MainWindow(QMainWindow):
         prev_time = self.sim_time
 
         try:
-            self.sim_data, self.sim_settings = load_sim(self.sim_file_path)
-            self.sim_time = self.sim_data["time"]
-            self.time_slider.setRange(0, len(self.sim_time) - 1)
+            self._set_source(LoggedSource.from_file(self.sim_file_path))
+            self.time_slider.setRange(0, max(self.source.n_frames - 1, 0))
             self.time_slider.blockSignals(False)
             self.grid.reset_scenes(self.sim_data, self.sim_settings)
             self.reset_simulation()
@@ -307,8 +373,12 @@ class MainWindow(QMainWindow):
     # SIMULATION CONTROL METHODS
     # ---------------------------------------------------------------
     def play_simulation(self):
-        """Start playing the simulation."""
+        """Start playing the simulation (for a live source: re-attach to the stream head)."""
         if self.sim_data is None:
+            return
+        if self.session.is_live:
+            self.session.reattach()  # the live tick drives the frames; no playback timer
+            self.playing = True
             return
         self.playing = True
         self.grid.timer_start()

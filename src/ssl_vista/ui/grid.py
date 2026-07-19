@@ -172,6 +172,12 @@ class SimulationGrid(QWidget):
                 extra={"grid_shape": [rows, cols], "plotters": snapshots},
             )
 
+    def refresh_scenes(self, sim_data, sim_settings):
+        """Live source grew: let every plotter refresh run-derived state (see ``refresh_data``)."""
+        for plotter in self._plotter_array.flatten():
+            if plotter is not None:
+                plotter.refresh_data(sim_data, sim_settings)
+
     def update_scenes(self, sim_data, idx):
         """Update each subplot with simulation data at timestep 'idx'."""
         for plotter in self._plotter_array.flatten():
