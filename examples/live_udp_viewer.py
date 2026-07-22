@@ -25,8 +25,8 @@ import time as wall
 
 import numpy as np
 from ssl_simulator import Engine, IntegrationSystem, System, World, set_log_level
-from ssl_tmtc.sources import UdpSource
-from ssl_tmtc.transports import udp_sink
+from ssl_link.sources import UdpSource
+from ssl_link.transports import udp_sink
 
 set_log_level("WARNING")
 

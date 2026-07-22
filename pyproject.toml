@@ -16,7 +16,7 @@ license = { text = "MIT" }
 authors = [{ name = "Jesus Bautista Villar", email = "jesbauti20@gmail.com" }]
 dependencies = [
     "ssl-simulator>=1.0.0",
-    "ssl_tmtc>=0.1",
+    "ssl_link>=0.1",
     "pyvista>=0.46.3",
     "vtk>=9.6",
     "pyvistaqt>=0.11.3",
@@ -140,6 +140,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S603"]
+"examples/**" = ["T201", "S104"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

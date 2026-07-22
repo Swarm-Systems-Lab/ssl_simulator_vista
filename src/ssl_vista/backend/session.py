@@ -3,10 +3,10 @@
 ``Session`` is what every frontend (the Qt MainWindow, a future QML GCS, a notebook, a headless
 recorder) programs against:
 
-- **telemetry in**: a bound :class:`~ssl_tmtc.sources.DataSource` (log, running sim, UDP, Ivy);
+- **telemetry in**: a bound :class:`~ssl_link.sources.DataSource` (log, running sim, UDP, Ivy);
 - **cursor**: the follow-live / scrub state machine, with the change-detection logic that used to
   live inside the Qt window's timer callback;
-- **command out**: an optional :class:`~ssl_tmtc.command.Commander`, so GCS panels call
+- **command out**: an optional :class:`~ssl_link.command.Commander`, so GCS panels call
   ``session.commander.setting(...)`` and never touch a transport.
 
 Frontends drive it with a periodic :meth:`poll` (Qt: a QTimer; scripts: a loop) and apply the
